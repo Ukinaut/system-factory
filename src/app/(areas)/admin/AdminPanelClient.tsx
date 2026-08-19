@@ -15,14 +15,22 @@ import {
   Check,
   UserCheck,
   KeyRound,
-  X
+  X,
+  Globe
 } from "lucide-react";
 import { createUser, updateUser, deleteUser } from "@/actions/users";
+import { getCountries } from "@/actions/countries";
 
 interface Permission {
   id: string;
   userId: string;
   areaPermitida: string;
+}
+
+interface UserCountry {
+  id: string;
+  userId: string;
+  countryCode: string;
 }
 
 interface User {
@@ -33,6 +41,7 @@ interface User {
   rol: string;
   createdAt: Date;
   permissions: Permission[];
+  countries?: UserCountry[];
 }
 
 const ROLES_DISPONIBLES = [
@@ -73,6 +82,10 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
   const [searchTerm, setSearchTerm] = useState("");
   const [isPending, startTransition] = useTransition();
 
+  // Países disponibles en el sistema
+  const [availableCountries, setAvailableCountries] = useState<{ id: string; code: string; nombre: string }[]>([]);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>(["AR"]);
+
   // Form State
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [nombre, setNombre] = useState("");
@@ -88,16 +101,19 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
   // Confirm Delete Dialog
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
-  // Sync users if initialUsers change
+  // Sync users if initialUsers change & load available countries
   useEffect(() => {
     setUsers(initialUsers);
+    getCountries().then(res => {
+      if (res.success && res.countries) {
+        setAvailableCountries(res.countries);
+      }
+    });
   }, [initialUsers]);
 
   // Manejar el cambio de rol para pre-cargar permisos por defecto
   const handleRolChange = (nuevoRol: string) => {
     setRol(nuevoRol);
-    // Solo actualizamos automáticamente si no estamos editando un usuario existente,
-    // o si el administrador explícitamente quiere reiniciar los permisos del rol.
     setSelectedPerms(DEFAULT_ROLE_PERMISSIONS[nuevoRol] || []);
   };
 
@@ -119,6 +135,7 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
     setContrasena("");
     setRol("OPERATOR");
     setSelectedPerms(DEFAULT_ROLE_PERMISSIONS.OPERATOR);
+    setSelectedCountries(["AR"]);
     setMessage(null);
   };
 
@@ -131,6 +148,7 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
     setContrasena(""); // En blanco por defecto al editar
     setRol(user.rol);
     setSelectedPerms(user.permissions.map(p => p.areaPermitida));
+    setSelectedCountries(user.countries && user.countries.length > 0 ? user.countries.map(c => c.countryCode) : ["AR"]);
     setMessage(null);
     setActiveTab("form");
   };
@@ -154,7 +172,8 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
           cuit_dni: cuitDni.trim(),
           contrasena: contrasena.trim() || undefined,
           rol,
-          permissions: selectedPerms
+          permissions: selectedPerms,
+          countries: selectedCountries
         });
 
         if (result.success) {
@@ -166,7 +185,8 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
             correo: correo.toLowerCase().trim(),
             cuit_dni: cuitDni.trim(),
             rol,
-            permissions: selectedPerms.map(p => ({ id: Math.random().toString(), userId: editingUserId, areaPermitida: p }))
+            permissions: selectedPerms.map(p => ({ id: Math.random().toString(), userId: editingUserId, areaPermitida: p })),
+            countries: selectedCountries.map(c => ({ id: Math.random().toString(), userId: editingUserId, countryCode: c }))
           } : u));
           setTimeout(() => {
             resetForm();
@@ -183,14 +203,16 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
           cuit_dni: cuitDni.trim(),
           contrasena: contrasena.trim(),
           rol,
-          permissions: selectedPerms
+          permissions: selectedPerms,
+          countries: selectedCountries
         });
 
         if (result.success && result.user) {
           setMessage({ type: "success", text: "Usuario registrado con éxito." });
           const newUser = {
             ...result.user,
-            permissions: selectedPerms.map(p => ({ id: Math.random().toString(), userId: result.user!.id, areaPermitida: p }))
+            permissions: selectedPerms.map(p => ({ id: Math.random().toString(), userId: result.user!.id, areaPermitida: p })),
+            countries: selectedCountries.map(c => ({ id: Math.random().toString(), userId: result.user!.id, countryCode: c }))
           };
           setUsers(prev => [newUser, ...prev]);
           setTimeout(() => {
@@ -340,6 +362,7 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
                   <th className="px-6 py-4 font-semibold">Usuario / CUIT</th>
                   <th className="px-6 py-4 font-semibold">Correo Electrónico</th>
                   <th className="px-6 py-4 font-semibold">Rol</th>
+                  <th className="px-6 py-4 font-semibold">Países</th>
                   <th className="px-6 py-4 font-semibold">Permisos de Módulo</th>
                   <th className="px-6 py-4 font-semibold text-right">Acciones</th>
                 </tr>
@@ -347,7 +370,7 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
               <tbody className="divide-y divide-border-custom">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-12 text-text-muted text-sm bg-bg-card">
+                    <td colSpan={6} className="text-center py-12 text-text-muted text-sm bg-bg-card">
                       No se encontraron usuarios registrados.
                     </td>
                   </tr>
@@ -355,6 +378,9 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
                   filteredUsers.map(user => {
                     const roleConfig = ROLES_DISPONIBLES.find(r => r.id === user.rol);
                     const userPermList = user.permissions.map(p => p.areaPermitida);
+                    const userCountryList = user.countries && user.countries.length > 0 
+                      ? user.countries.map(c => c.countryCode) 
+                      : ["AR"];
                     const isCustom = user.rol !== "ADMIN" && (
                       userPermList.length !== (DEFAULT_ROLE_PERMISSIONS[user.rol]?.length || 0)
                     );
@@ -370,6 +396,19 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
                           <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase border ${roleConfig?.color || "bg-gray-500/10 text-text-muted border-border-custom"}`}>
                             {roleConfig?.name || user.rol}
                           </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {user.rol === "ADMIN" ? (
+                              <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Todos (Global)</span>
+                            ) : (
+                              userCountryList.map(code => (
+                                <span key={code} className="px-2 py-0.5 bg-bg-subtle text-text-primary rounded text-[11px] font-mono font-bold border border-border-custom">
+                                  {code}
+                                </span>
+                              ))
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           {user.rol === "ADMIN" ? (
@@ -586,6 +625,55 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
                       })}
                     </div>
                   )}
+                </div>
+
+                {/* PAÍSES / REGIONES AUTORIZADAS */}
+                <div className="pt-3 border-t border-border-custom/60">
+                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-[#0078D7]" /> Países / Regiones Autorizadas
+                  </label>
+                  <p className="text-xs text-text-muted mb-2.5">
+                    Selecciona a cuáles países de la empresa pertenece y puede ingresar este usuario.
+                  </p>
+                  <div className="flex flex-wrap gap-2.5">
+                    {availableCountries.map(country => {
+                      const isChecked = selectedCountries.includes(country.code);
+                      return (
+                        <label
+                          key={country.code}
+                          className={`flex items-center gap-2.5 px-3.5 py-2 rounded-lg border cursor-pointer select-none text-xs font-semibold transition-all ${
+                            isChecked
+                              ? "bg-[#0078D7]/10 border-[#0078D7]/40 text-text-primary shadow-sm"
+                              : "bg-bg-sidebar/50 border-border-custom/60 text-text-muted hover:bg-bg-subtle"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                if (selectedCountries.length > 1) {
+                                  setSelectedCountries(selectedCountries.filter(c => c !== country.code));
+                                }
+                              } else {
+                                setSelectedCountries([...selectedCountries, country.code]);
+                              }
+                            }}
+                            className="sr-only"
+                          />
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+                            isChecked ? "bg-[#0078D7] border-[#0078D7]" : "border-gray-500 bg-bg-subtle"
+                          }`}>
+                            {isChecked && <Check className="w-3 h-3 text-white stroke-[3]" />}
+                          </div>
+                          <span>{country.nombre} ({country.code})</span>
+                        </label>
+                      );
+                    })}
+                    {availableCountries.length === 0 && (
+                      <span className="text-xs text-text-muted italic">Cargando lista de países...</span>
+                    )}
+                  </div>
                 </div>
 
               </div>

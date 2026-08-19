@@ -10,6 +10,7 @@ export async function getUsers() {
     const users = await prisma.user.findMany({
       include: {
         permissions: true,
+        countries: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -29,6 +30,7 @@ export async function createUser(data: {
   contrasena: string;
   rol: string;
   permissions: string[];
+  countries?: string[];
 }) {
   try {
     const contrasenaHash = hashPassword(data.contrasena);
@@ -44,7 +46,16 @@ export async function createUser(data: {
             areaPermitida: p,
           })),
         },
+        countries: data.countries && data.countries.length > 0 ? {
+          create: data.countries.map((c) => ({
+            countryCode: c,
+          })),
+        } : undefined,
       },
+      include: {
+        permissions: true,
+        countries: true,
+      }
     });
     revalidatePath("/admin");
     return { success: true, user };
@@ -66,6 +77,7 @@ export async function updateUser(
     contrasena?: string;
     rol: string;
     permissions: string[];
+    countries?: string[];
   }
 ) {
   try {
@@ -84,6 +96,9 @@ export async function updateUser(
       prisma.operatorPermission.deleteMany({
         where: { userId: id },
       }),
+      prisma.userCountry.deleteMany({
+        where: { userId: id },
+      }),
       prisma.user.update({
         where: { id },
         data: {
@@ -93,6 +108,11 @@ export async function updateUser(
               areaPermitida: p,
             })),
           },
+          countries: data.countries && data.countries.length > 0 ? {
+            create: data.countries.map((c) => ({
+              countryCode: c,
+            })),
+          } : undefined,
         },
       }),
     ]);

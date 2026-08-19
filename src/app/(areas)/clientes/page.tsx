@@ -94,7 +94,11 @@ export default function ClientesDashboard() {
 
   // Filter clients
   const clientesFiltrados = clientes.filter(c => {
-    const matchesSearch = c.razonSocial.toLowerCase().includes(busqueda.toLowerCase()) || c.cuit.includes(busqueda);
+    const matchesSearch = c.razonSocial.toLowerCase().includes(busqueda.toLowerCase()) || 
+                          c.cuit.includes(busqueda) ||
+                          (c.correo && c.correo.toLowerCase().includes(busqueda.toLowerCase())) ||
+                          (c.provincia && c.provincia.toLowerCase().includes(busqueda.toLowerCase())) ||
+                          (c.localidad && c.localidad.toLowerCase().includes(busqueda.toLowerCase()));
     const matchesPriority = filtroPrioridad === "TODAS" || c.prioridad === filtroPrioridad;
     return matchesSearch && matchesPriority;
   });
@@ -320,8 +324,18 @@ export default function ClientesDashboard() {
                   
                   <div className="flex-1 min-w-0 text-left w-full">
                     <h3 className="text-xl font-bold text-text-primary tracking-wide mb-1 truncate">{cliente.razonSocial}</h3>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm text-text-muted font-mono">CUIT: {cliente.cuit}</p>
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <p className="text-text-muted font-mono font-bold">{cliente.tipoIdentificacion || 'CUIT'}: {cliente.cuit}</p>
+                      {cliente.condicionIva && (
+                        <span className="px-2 py-0.5 bg-bg-subtle text-text-secondary rounded font-medium border border-border-custom text-[11px]">
+                          {cliente.condicionIva}
+                        </span>
+                      )}
+                      {(cliente.localidad || cliente.provincia) && (
+                        <span className="px-2 py-0.5 bg-bg-subtle text-text-muted rounded font-medium border border-border-custom text-[11px]">
+                          📍 {[cliente.localidad, cliente.provincia].filter(Boolean).join(", ")}
+                        </span>
+                      )}
                       <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
                         cliente.prioridad === "ALTA" ? "bg-rose-500/10 text-rose-500 border-rose-500/30" :
                         cliente.prioridad === "MEDIA" ? "bg-amber-500/10 text-amber-500 border-amber-500/30" :

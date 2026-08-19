@@ -51,16 +51,29 @@ model AuditLog {
 
 // 2. Clientes
 model Client {
-  id          String   @id @default(cuid())
-  cuit        String
-  razonSocial String
-  telefono    String?
-  correo      String?
-  direccion   String?
-  diaFacturacion Int   @default(5)
-  prioridad   String   @default("MEDIA") // ALTA, MEDIA, BAJA
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  cuit               String
+  razonSocial        String
+  tipoIdentificacion String?
+  condicionIva       String?
+  telefono           String?
+  correo             String?
+  emailsAdicionales  String?
+  pais               String?  @default("Argentina")
+  provincia          String?
+  localidad          String?
+  codigoPostal       String?
+  direccion          String?
+  codigoCliente      String?
+  cuentaContable     String?
+  origen             String?
+  gastoTotal         Float?   @default(0)
+  pedidosCount       Int?     @default(0)
+  activo             Boolean  @default(true)
+  diaFacturacion     Int      @default(5)
+  prioridad          String   @default("MEDIA") // ALTA, MEDIA, BAJA
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Relationship for Sub-nodes (Parent-Child)
   parentId    String?

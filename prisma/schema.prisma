@@ -1,0 +1,426 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Usuarios y Permisos
+model User {
+  id             String   @id @default(uuid())
+  nombre         String
+  cuit_dni       String   @unique
+  correo         String   @unique
+  contrasenaHash String
+  rol            String   // ADMIN, SUPERVISOR, OPERATOR
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  permissions    OperatorPermission[]
+  countries      UserCountry[]
+  auditLogs      AuditLog[]
+  sales          Sale[]
+  quotes         Quote[]
+  sentMessages     Message[]       @relation("SentMessages")
+  receivedMessages Message[]       @relation("ReceivedMessages")
+  calendarEvents   CalendarEvent[]
+  notifications    Notification[]
+  purchaseRequests PurchaseRequest[]
+  saleObservations SaleObservation[]
+}
+
+model OperatorPermission {
+  id          String   @id @default(uuid())
+  userId      String
+  areaPermitida String // Ej: "VENTAS", "FACTURACION", etc.
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  accion    String
+  fechaHora DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 2. Clientes
+model Client {
+  id          String   @id @default(cuid())
+  cuit        String
+  razonSocial String
+  telefono    String?
+  correo      String?
+  direccion   String?
+  diaFacturacion Int   @default(5)
+  prioridad   String   @default("MEDIA") // ALTA, MEDIA, BAJA
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationship for Sub-nodes (Parent-Child)
+  parentId    String?
+  parent      Client?         @relation("SubClients", fields: [parentId], references: [id], onDelete: Cascade)
+  subClients  Client[]        @relation("SubClients")
+
+  sales       Sale[]
+  quotes      Quote[]
+  claims      Claim[]
+  services    Service[]
+  equipos     EquipoCliente[]
+  calendarEvents CalendarEvent[]
+  events      ClientEvent[]
+}
+
+model EquipoCliente {
+  id                    String   @id @default(cuid())
+  clienteId             String
+  cliente               Client   @relation(fields: [clienteId], references: [id])
+  
+  marca                 String   // "Starlink" o "Amazon Leo"
+  tipoMovilidad         String   // "Fija" o "Movil"
+  modelo                String
+  identificadorServicio String   // "Numero de Kit" o "MAC"
+  proveedor             String?  // "Telespazio", "Telefonica", "Ale Mc"
+  
+  provincia             String?
+  localidad             String?
+  direccion             String?
+  coordenadas           String?
+  
+  gigasAsignados        Int      @default(0)
+  gigasConsumidos       Int      @default(0)
+  
+  estado                String   @default("Activo") // "Activo", "Baja"
+  fechaAlta             DateTime @default(now())
+  fechaBaja             DateTime?
+}
+
+// 3. Ventas y Presupuestos
+model Sale {
+  id               String   @id @default(uuid())
+  numeroOrden      String   @unique
+  clientId         String
+  vendedorId       String
+  tipo             String   // ARTICULO, SERVICIO, MIXTO
+  costoEnvio       Float    @default(0)
+  descuento        Float    @default(0)
+  autorizaDescuento String?
+  observaciones    String?
+  tipoFactura      String   // A, B, C, etc.
+  estado           String   @default("PENDIENTE") // PENDIENTE, FACTURADO, ENVIADO, etc.
+  moneda           String   @default("ARS")
+  total            Float    @default(0)
+  puntoVenta       String   @default("TIENDA") // MERCADO_LIBRE, TIENDA, MAIL
+  tipoEntrega      String   @default("ENVIO")  // ENVIO, RETIRO
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  client           Client   @relation(fields: [clientId], references: [id])
+  vendedor         User     @relation(fields: [vendedorId], references: [id])
+  details          SaleDetail[]
+  invoices         Invoice[]
+  shipping         Shipping?
+  observations     SaleObservation[]
+}
+
+model SaleDetail {
+  id             String   @id @default(uuid())
+  saleId         String
+  productoId     String
+  cantidad       Int
+  precioUnitario Float
+  componentesSeleccionados String?
+
+  sale           Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  producto       Product  @relation(fields: [productoId], references: [id])
+}
+
+model SaleObservation {
+  id        String   @id @default(uuid())
+  saleId    String
+  userId    String
+  texto     String
+  createdAt DateTime @default(now())
+
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Quote {
+  id               String   @id @default(uuid())
+  numeroOrden      String   @unique
+  clientId         String
+  vendedorId       String
+  tipo             String
+  costoEnvio       Float    @default(0)
+  descuento        Float    @default(0)
+  autorizaDescuento String?
+  observaciones    String?
+  moneda           String   @default("ARS")
+  total            Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  client           Client   @relation(fields: [clientId], references: [id])
+  vendedor         User     @relation(fields: [vendedorId], references: [id])
+}
+
+model Claim {
+  id          String   @id @default(uuid())
+  clientId    String
+  tipo        String   // ARTICULO, PRODUCTO, etc.
+  prioridad   String   // URGENTE, MEDIO, LEVE, etc.
+  observacion String
+  fecha       DateTime @default(now())
+
+  // RMA Kanban fields
+  estado      String   @default("Ingresado") // "Ingresado", "En Reparación", "Esperando Repuesto", "Terminado"
+  tecnico     String   @default("Sin asignar")
+  diagnostico String   @default("")
+  repuestos   String   @default("[]") // JSON string list of parts used
+
+  client      Client   @relation(fields: [clientId], references: [id])
+}
+
+model BotConfig {
+  id                  String  @id @default("global")
+  activo              Boolean @default(true)
+  mensajeBienvenida   String
+  mensajeSoporte      String
+  mensajeFueraHorario String
+}
+
+// 4. Facturación y Cobranzas
+model Invoice {
+  id                      String   @id @default(uuid())
+  saleId                  String
+  archivoUrl              String?
+  observacionesFacturador String?
+  fecha                   DateTime @default(now())
+
+  sale                    Sale     @relation(fields: [saleId], references: [id])
+  payments                Payment[]
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  invoiceId      String
+  comprobanteUrl String?
+  fechaPago      DateTime @default(now())
+
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id])
+}
+
+// 5. Operativa y Envíos
+model Service {
+  id              String   @id @default(uuid())
+  clientId        String
+  tipo            String   // POOL, CORPORATIVO, PRIVADO
+  operador        String   // Telefonica, Telespazio, Ale MC
+  gigasAsignados  Float
+  gigasConsumidos Float    @default(0)
+  status          String   @default("ACTIVO")
+
+  client          Client   @relation(fields: [clientId], references: [id])
+}
+
+model Shipping {
+  id              String   @id @default(uuid())
+  saleId          String   @unique
+  tracking        String?
+  logistica       String?  // Correo Argentino, Andreani, DHL
+  estado          String   @default("PARA_EMPACAR") // PARA_EMPACAR, DESPACHADO, EMPACADO, ENTREGADO
+  subEstado       String?  @default("RECIBIDO") // RECIBIDO, TRANSITO, DISTRIBUCION, INCIDENCIA, ENTREGADO
+  cajasUtilizadas String?
+
+  sale            Sale     @relation(fields: [saleId], references: [id])
+}
+
+// 6. Stock
+model Product {
+  id             String   @id @default(uuid())
+  tipo           String   // PRODUCTO_FINAL, ENSAMBLE, MATERIA_PRIMA
+  nombre         String
+  cantidad       Int
+  alertaMinima   Int
+  alertaCritica  Int
+  caracteristicas String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  saleDetails    SaleDetail[]
+  
+  countryId      String?
+  country        Country? @relation(fields: [countryId], references: [id], onDelete: Cascade)
+}
+
+// 7. Configuración Regional (Países)
+model Country {
+  id             String          @id @default(uuid())
+  code           String          @unique // Ej: "AR", "ES", "CO"
+  nombre         String
+  isPrincipal    Boolean         @default(false)
+  activo         Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  products       Product[]
+  importInvoices ImportInvoice[]
+  foreignOrders  ForeignOrder[]
+}
+
+model UserCountry {
+  id          String   @id @default(uuid())
+  userId      String
+  countryCode String   // Ej: "AR", "ES", "CO"
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, countryCode])
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  content    String
+  createdAt  DateTime @default(now())
+
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+}
+
+model CalendarEvent {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  start       DateTime
+  end         DateTime?
+  type        String   // ACTIVIDAD, REUNION, ALERTA_CONTRATO, CAMBIO_SERVICIO
+  scope       String   // INDIVIDUAL, GLOBAL
+  userId      String
+  clientId    String?  // Opcional para alertas de clientes
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  titulo    String
+  mensaje   String
+  area      String   // VENTAS, LOGISTICA, COBRANZAS, RECLAMOS, SISTEMA
+  leida     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PurchaseRequest {
+  id                String           @id @default(uuid())
+  userId            String
+  tipoArticulo      String           // CONSUMIBLES, VARIOS, EQUIPOS, OTROS
+  articulo          String
+  montoAprox        Float
+  referenciaUrl     String?          // Link o url de la foto
+  areaDestino       String           // LABORATORIO, OPERATIVA, DESPACHOS, COCINA, BANOS, LIMPIEZA, OTROS
+  estado            String           @default("PENDIENTE") // PENDIENTE, APROBADA, RECHAZADA, PROCESADA
+  comentario        String?          // Comentario opcional para rechazos
+  proveedor         String?
+  formaPago         String?
+  purchaseInvoiceId String?
+  purchaseInvoice   PurchaseInvoice? @relation(fields: [purchaseInvoiceId], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PurchaseInvoice {
+  id            String            @id @default(uuid())
+  nroFactura    String?
+  proveedor     String?
+  formaPago     String?
+  montoFinal    Float
+  moneda        String            @default("ARS")
+  archivoUrl    String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  requests      PurchaseRequest[]
+}
+
+model ImportInvoice {
+  id            String              @id @default(uuid())
+  nroFactura    String
+  proveedor     String
+  montoFinal    Float
+  moneda        String              @default("USD")
+  archivoUrl    String?
+  countryId     String?
+  country       Country?            @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  items         ImportInvoiceItem[]
+}
+
+model ImportInvoiceItem {
+  id              String        @id @default(uuid())
+  importInvoiceId String
+  importInvoice   ImportInvoice @relation(fields: [importInvoiceId], references: [id], onDelete: Cascade)
+  nombreProduct   String
+  cantidad        Int
+  tipoProduct     String        // PRODUCTO_FINAL, ENSAMBLE, MATERIA_PRIMA
+  productId       String?       // Opcional por si el producto ya existía
+}
+
+model ForeignOrder {
+  id                 String             @id @default(uuid())
+  nroOrden           String
+  proveedor          String
+  paisOrigen         String?            // País del cual proviene el producto
+  montoFinal         Float              @default(0)
+  moneda             String             @default("USD")
+  fechaEmision       DateTime           @default(now())
+  fechaLlegadaAprox  DateTime?
+  estado             String             @default("PENDIENTE") // PENDIENTE, VERIFICADO
+  countryId          String?
+  country            Country?           @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  items              ForeignOrderItem[]
+}
+
+model ForeignOrderItem {
+  id             String       @id @default(uuid())
+  foreignOrderId String
+  foreignOrder   ForeignOrder @relation(fields: [foreignOrderId], references: [id], onDelete: Cascade)
+  nombreProduct  String
+  cantidad       Int
+  tipoProduct    String       // PRODUCTO_FINAL, ENSAMBLE, MATERIA_PRIMA
+  verificado     Boolean      @default(false)
+}
+
+model Provider {
+  id               String   @id @default(uuid())
+  nombre           String
+  servicioBrindado String
+  createdAt        DateTime @default(now())
+}
+
+model ClientEvent {
+  id            String   @id @default(uuid())
+  clientId      String
+  fecha         DateTime @default(now())
+  tipo          String   // "Reclamo", "Recarga", "Otros"
+  observaciones String
+  adjuntoUrl    String?  // Ruta del archivo subido en /uploads/
+  adjuntoNombre String?  // Nombre original del archivo para mostrar
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+
+

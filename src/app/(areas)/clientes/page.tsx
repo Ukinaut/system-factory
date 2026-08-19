@@ -22,7 +22,9 @@ import {
   DollarSign,
   History,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
+  Building2,
+  UserCheck
 } from "lucide-react";
 import { getClients, createClient, deleteClient, getClientHistory, importXubioClients } from "@/actions/clients";
 import { getCurrentUserSession } from "@/actions/users";
@@ -59,6 +61,30 @@ export default function ClientesDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [filtroPrioridad, setFiltroPrioridad] = useState("TODAS");
+  const [filtroTipo, setFiltroTipo] = useState("TODOS");
+
+  const esEmpresa = (c: any) => {
+    const condicion = (c.condicionIva || "").toLowerCase();
+    const razon = (c.razonSocial || "").toLowerCase();
+    const cuitClean = (c.cuit || "").replace(/[^0-9]/g, "");
+    return (
+      condicion.includes("responsable inscripto") ||
+      condicion.includes("exento") ||
+      cuitClean.startsWith("30") ||
+      cuitClean.startsWith("33") ||
+      cuitClean.startsWith("34") ||
+      razon.includes("s.a") ||
+      razon.includes("s.r.l") ||
+      razon.includes("srl") ||
+      razon.includes("sociedad") ||
+      razon.includes("empresa")
+    );
+  };
+
+  const totalClientes = clientes.length;
+  const empresasCount = clientes.filter(esEmpresa).length;
+  const clientesFinalesCount = totalClientes - empresasCount;
+  const equiposTotalesActivos = clientes.reduce((acc, c) => acc + (c.equiposActivos || 0), 0);
 
   // Load clients and history
   const loadData = async () => {
@@ -100,7 +126,15 @@ export default function ClientesDashboard() {
                           (c.provincia && c.provincia.toLowerCase().includes(busqueda.toLowerCase())) ||
                           (c.localidad && c.localidad.toLowerCase().includes(busqueda.toLowerCase()));
     const matchesPriority = filtroPrioridad === "TODAS" || c.prioridad === filtroPrioridad;
-    return matchesSearch && matchesPriority;
+    
+    let matchesTipo = true;
+    if (filtroTipo === "EMPRESAS") {
+      matchesTipo = esEmpresa(c);
+    } else if (filtroTipo === "FINALES") {
+      matchesTipo = !esEmpresa(c);
+    }
+
+    return matchesSearch && matchesPriority && matchesTipo;
   });
 
   // Filter general history
@@ -216,7 +250,7 @@ export default function ClientesDashboard() {
     <div className="max-w-6xl mx-auto pb-12 relative">
       
       {/* HEADER */}
-      <div className="flex justify-between items-end mb-8 flex-wrap gap-4">
+      <div className="flex justify-between items-end mb-6 flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-text-primary tracking-wide flex items-center gap-3 mb-2">
             <Users className="text-[#0078D7] w-8 h-8" />
@@ -239,6 +273,53 @@ export default function ClientesDashboard() {
             <Plus className="w-5 h-5" />
             Registrar Cliente
           </button>
+        </div>
+      </div>
+
+      {/* MINI DASHBOARD DE MÉTRICAS KPI */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 mb-8">
+        {/* Total Clientes */}
+        <div className="bg-bg-card p-5 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-[#0078D7]/60 transition-all">
+          <div>
+            <p className="text-text-muted text-[11px] font-bold uppercase tracking-wider mb-1">Total Clientes</p>
+            <h3 className="text-3xl font-extrabold text-text-primary">{totalClientes.toLocaleString("es-AR")}</h3>
+          </div>
+          <div className="w-12 h-12 bg-[#0078D7]/10 text-[#0078D7] rounded-xl flex items-center justify-center border border-[#0078D7]/20">
+            <Users className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Empresas / PymEs */}
+        <div className="bg-bg-card p-5 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-emerald-500/60 transition-all">
+          <div>
+            <p className="text-text-muted text-[11px] font-bold uppercase tracking-wider mb-1">Empresas / PymEs</p>
+            <h3 className="text-3xl font-extrabold text-emerald-400">{empresasCount.toLocaleString("es-AR")}</h3>
+          </div>
+          <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center border border-emerald-500/20">
+            <Building2 className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Clientes Finales */}
+        <div className="bg-bg-card p-5 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-purple-500/60 transition-all">
+          <div>
+            <p className="text-text-muted text-[11px] font-bold uppercase tracking-wider mb-1">Clientes Finales</p>
+            <h3 className="text-3xl font-extrabold text-purple-400">{clientesFinalesCount.toLocaleString("es-AR")}</h3>
+          </div>
+          <div className="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center border border-purple-500/20">
+            <UserCheck className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Equipos Activos */}
+        <div className="bg-bg-card p-5 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-indigo-500/60 transition-all">
+          <div>
+            <p className="text-text-muted text-[11px] font-bold uppercase tracking-wider mb-1">Equipos Activos</p>
+            <h3 className="text-3xl font-extrabold text-indigo-400">{equiposTotalesActivos.toLocaleString("es-AR")}</h3>
+          </div>
+          <div className="w-12 h-12 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center border border-indigo-500/20">
+            <Server className="w-6 h-6" />
+          </div>
         </div>
       </div>
 
@@ -286,27 +367,46 @@ export default function ClientesDashboard() {
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 className="w-full bg-bg-card border border-border-custom rounded-md pl-10 pr-4 py-3 text-text-primary placeholder-gray-500 focus:border-[#0078D7] outline-none transition-colors text-sm"
-                placeholder="Buscar por Razón Social o CUIT..."
+                placeholder="Buscar por Razón Social, CUIT, Email o Ubicación..."
               />
             </div>
             
-            <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end">
-              <span className="text-xs text-text-muted font-bold uppercase tracking-wider whitespace-nowrap">Prioridad:</span>
-              <select
-                value={filtroPrioridad}
-                onChange={(e) => setFiltroPrioridad(e.target.value)}
-                className={`px-3 py-2.5 rounded-md border font-bold uppercase cursor-pointer outline-none bg-bg-card text-xs border-border-custom ${
-                  filtroPrioridad === "ALTA" ? "text-rose-500 border-rose-500/30" :
-                  filtroPrioridad === "MEDIA" ? "text-amber-500 border-amber-500/30" :
-                  filtroPrioridad === "BAJA" ? "text-emerald-500 border-emerald-500/30" :
-                  "text-text-primary"
-                }`}
-              >
-                <option value="TODAS" className="bg-bg-card text-text-primary font-bold">TODAS</option>
-                <option value="ALTA" className="bg-bg-card text-rose-500 font-bold">Alta Prioridad</option>
-                <option value="MEDIA" className="bg-bg-card text-amber-500 font-bold">Prioridad Media</option>
-                <option value="BAJA" className="bg-bg-card text-emerald-500 font-bold">Baja Prioridad</option>
-              </select>
+            <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-end flex-wrap sm:flex-nowrap">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-text-muted font-bold uppercase tracking-wider whitespace-nowrap">Tipo:</span>
+                <select
+                  value={filtroTipo}
+                  onChange={(e) => setFiltroTipo(e.target.value)}
+                  className={`px-3 py-2.5 rounded-md border font-bold uppercase cursor-pointer outline-none bg-bg-card text-xs border-border-custom ${
+                    filtroTipo === "EMPRESAS" ? "text-emerald-400 border-emerald-500/30" :
+                    filtroTipo === "FINALES" ? "text-purple-400 border-purple-500/30" :
+                    "text-text-primary"
+                  }`}
+                >
+                  <option value="TODOS" className="bg-bg-card text-text-primary font-bold">TODOS</option>
+                  <option value="EMPRESAS" className="bg-bg-card text-emerald-400 font-bold">Empresas / PymEs</option>
+                  <option value="FINALES" className="bg-bg-card text-purple-400 font-bold">Clientes Finales</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-text-muted font-bold uppercase tracking-wider whitespace-nowrap">Prioridad:</span>
+                <select
+                  value={filtroPrioridad}
+                  onChange={(e) => setFiltroPrioridad(e.target.value)}
+                  className={`px-3 py-2.5 rounded-md border font-bold uppercase cursor-pointer outline-none bg-bg-card text-xs border-border-custom ${
+                    filtroPrioridad === "ALTA" ? "text-rose-500 border-rose-500/30" :
+                    filtroPrioridad === "MEDIA" ? "text-amber-500 border-amber-500/30" :
+                    filtroPrioridad === "BAJA" ? "text-emerald-500 border-emerald-500/30" :
+                    "text-text-primary"
+                  }`}
+                >
+                  <option value="TODAS" className="bg-bg-card text-text-primary font-bold">TODAS</option>
+                  <option value="ALTA" className="bg-bg-card text-rose-500 font-bold">Alta Prioridad</option>
+                  <option value="MEDIA" className="bg-bg-card text-amber-500 font-bold">Prioridad Media</option>
+                  <option value="BAJA" className="bg-bg-card text-emerald-500 font-bold">Baja Prioridad</option>
+                </select>
+              </div>
             </div>
           </div>
 

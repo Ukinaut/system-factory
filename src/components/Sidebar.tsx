@@ -93,17 +93,17 @@ export default function Sidebar({
   const flagUrl = selectedCountry ? getFlagUrl(selectedCountry) : null;
 
   return (
-    <aside className="w-72 bg-bg-sidebar text-text-secondary min-h-screen flex flex-col border-r border-border-custom transition-all duration-200">
+    <aside className="w-80 bg-bg-sidebar text-text-secondary min-h-screen flex flex-col border-r border-border-custom transition-all duration-200">
       <div className="p-6 flex items-center justify-between border-b border-border-custom gap-2 shrink-0">
         <div className="flex items-center gap-3">
           <img 
             src="/logo.png" 
             alt="Aitue Cominca S.A. Logo" 
-            className="w-10 h-10 object-contain rounded shrink-0" 
+            className="w-11 h-11 object-contain rounded shrink-0" 
           />
           <div>
-            <h1 className="text-base font-bold tracking-wide text-text-primary leading-tight">Aitue Cominca S.A.</h1>
-            <p className="text-[10px] text-[#0078D7] font-bold uppercase tracking-widest">{rol}</p>
+            <h1 className="text-lg font-bold tracking-wide text-text-primary leading-tight">Aitue Cominca S.A.</h1>
+            <p className="text-xs text-[#0078D7] font-bold uppercase tracking-widest">{rol}</p>
           </div>
         </div>
         <ThemeToggle />
@@ -111,23 +111,23 @@ export default function Sidebar({
 
       {/* Indicador de País */}
       {selectedCountry && (
-        <div className="mx-4 mt-4 px-3 py-2 bg-bg-subtle rounded-md border border-border-custom flex items-center justify-between shadow-sm shrink-0">
+        <div className="mx-4 mt-4 px-3.5 py-2.5 bg-bg-subtle rounded-md border border-border-custom flex items-center justify-between shadow-sm shrink-0">
           <div className="flex items-center gap-2">
             {flagUrl ? (
               <img 
                 src={flagUrl} 
                 alt={`Bandera de ${selectedCountry}`} 
-                className="w-6 h-4 object-cover rounded shadow-sm border border-white/10 shrink-0"
+                className="w-7 h-5 object-cover rounded shadow-sm border border-white/10 shrink-0"
               />
             ) : (
-              <span className="text-sm">🌐</span>
+              <span className="text-base">🌐</span>
             )}
-            <span className="text-xs font-bold text-text-primary uppercase tracking-wider">{selectedCountry}</span>
+            <span className="text-sm font-bold text-text-primary uppercase tracking-wider">{selectedCountry}</span>
           </div>
           <button 
             onClick={handleChangeCountry}
             disabled={isPending}
-            className="text-[10px] text-[#0078D7] hover:text-[#005a9e] disabled:opacity-50 font-bold uppercase tracking-wider cursor-pointer"
+            className="text-xs text-[#0078D7] hover:text-[#005a9e] disabled:opacity-50 font-bold uppercase tracking-wider cursor-pointer"
           >
             {isPending ? "Cambiando..." : "Cambiar"}
           </button>
@@ -136,7 +136,7 @@ export default function Sidebar({
 
 
       <nav className="flex-1 overflow-y-auto py-6">
-        <ul className="space-y-1 px-4">
+        <ul className="space-y-1.5 px-4">
           {allowedAreas.map((area) => {
             const isActive = pathname.startsWith(area.path);
             const Icon = area.icon;
@@ -144,10 +144,10 @@ export default function Sidebar({
               <li key={area.path}>
                 <Link 
                   href={area.path}
-                  className={`flex items-center gap-4 px-4 py-3 rounded-md transition-all duration-200 ${isActive ? 'bg-[#0078D7] text-white shadow-md' : 'hover:bg-bg-subtle hover:text-text-primary'}`}
+                  className={`flex items-center gap-4 px-4 py-3.5 rounded-md transition-all duration-200 ${isActive ? 'bg-[#0078D7] text-white shadow-md font-bold' : 'hover:bg-bg-subtle hover:text-text-primary'}`}
                 >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium text-sm tracking-wide">{area.name}</span>
+                  <Icon className="w-5.5 h-5.5 shrink-0" />
+                  <span className="font-semibold text-base tracking-wide">{area.name}</span>
                 </Link>
               </li>
             );
@@ -157,18 +157,18 @@ export default function Sidebar({
 
       <div className="p-4 border-t border-border-custom bg-bg-subtle">
         <div className="flex items-center gap-3 mb-4 px-2">
-          <div className="w-8 h-8 bg-bg-card rounded-full flex items-center justify-center border border-border-custom">
-            <UserIcon className="w-4 h-4 text-text-muted" />
+          <div className="w-9 h-9 bg-bg-card rounded-full flex items-center justify-center border border-border-custom">
+            <UserIcon className="w-5 h-5 text-text-muted" />
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-bold text-text-primary truncate">{nombre}</p>
+            <p className="text-base font-bold text-text-primary truncate">{nombre}</p>
             <p className="text-xs text-text-muted truncate">{session?.correo}</p>
           </div>
         </div>
         <form action={logoutAction}>
-          <button type="submit" className="w-full flex items-center justify-center gap-3 px-4 py-2.5 text-text-muted hover:bg-red-500/10 hover:text-red-500 rounded-md transition-all duration-200 border border-transparent hover:border-red-500/20 cursor-pointer">
-            <LogOut className="w-4 h-4" />
-            <span className="font-bold text-sm tracking-wide uppercase">Cerrar Sesión</span>
+          <button type="submit" className="w-full flex items-center justify-center gap-3 px-4 py-3 text-text-muted hover:bg-red-500/10 hover:text-red-500 rounded-md transition-all duration-200 border border-transparent hover:border-red-500/20 cursor-pointer">
+            <LogOut className="w-5 h-5" />
+            <span className="font-bold text-base tracking-wide uppercase">Cerrar Sesión</span>
           </button>
         </form>
       </div>

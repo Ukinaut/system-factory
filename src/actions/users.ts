@@ -14,17 +14,29 @@ async function getSession() {
   try {
     const decodedStr = Buffer.from(token, "base64").toString("utf-8");
     const session = JSON.parse(decodedStr);
-    const liveUser = await prisma.user.findUnique({
-      where: { id: session.id },
-      select: { nombre: true, correo: true, rol: true, telefono: true, fotoUrl: true, cargo: true }
-    });
-    if (liveUser) {
-      session.nombre = liveUser.nombre;
-      session.correo = liveUser.correo;
-      session.rol = liveUser.rol;
-      session.telefono = liveUser.telefono;
-      session.fotoUrl = liveUser.fotoUrl;
-      session.cargo = liveUser.cargo;
+    if (session && (session.id || session.correo)) {
+      try {
+        const liveUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              session.id ? { id: session.id } : undefined,
+              session.correo ? { correo: session.correo } : undefined,
+            ].filter(Boolean) as any,
+          },
+          select: { id: true, nombre: true, correo: true, rol: true, telefono: true, fotoUrl: true, cargo: true }
+        });
+        if (liveUser) {
+          session.id = liveUser.id;
+          session.nombre = liveUser.nombre;
+          session.correo = liveUser.correo;
+          session.rol = liveUser.rol;
+          session.telefono = liveUser.telefono;
+          session.fotoUrl = liveUser.fotoUrl;
+          session.cargo = liveUser.cargo;
+        }
+      } catch (err) {
+        console.error("Error fetching liveUser in getSession:", err);
+      }
     }
     return session;
   } catch {

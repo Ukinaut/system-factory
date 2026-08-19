@@ -2,11 +2,24 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 export async function getClients() {
   try {
+    const cookieStore = await cookies();
+    const selectedCountry = cookieStore.get("selectedCountry")?.value || "AR";
+
+    const whereCondition: any = { parentId: null };
+
+    if (selectedCountry) {
+      whereCondition.OR = [
+        { countryCode: selectedCountry },
+        selectedCountry === "AR" ? { pais: "Argentina" } : undefined,
+      ].filter(Boolean);
+    }
+
     const clients = await prisma.client.findMany({
-      where: { parentId: null },
+      where: whereCondition,
       include: {
         equipos: true,
         services: true,
@@ -40,6 +53,7 @@ export async function getClients() {
         correo: client.correo || "",
         emailsAdicionales: client.emailsAdicionales || "",
         pais: client.pais || "Argentina",
+        countryCode: client.countryCode || "AR",
         provincia: client.provincia || "",
         localidad: client.localidad || "",
         codigoPostal: client.codigoPostal || "",
@@ -72,15 +86,24 @@ export async function createClient(data: {
   correo?: string;
   direccion?: string;
   parentId?: string;
+  countryCode?: string;
 }) {
   try {
-    // Si es cliente principal (parentId es nulo), validar que el CUIT no esté registrado ya en otro principal
+    const cookieStore = await cookies();
+    const activeCountry = data.countryCode || cookieStore.get("selectedCountry")?.value || "AR";
+    const countryNameMap: Record<string, string> = {
+      AR: "Argentina",
+      ES: "España",
+      CO: "Colombia",
+    };
+
+    // Si es cliente principal (parentId es nulo), validar que el CUIT no esté registrado ya en la misma región
     if (!data.parentId) {
       const existing = await prisma.client.findFirst({
-        where: { cuit: data.cuit, parentId: null }
+        where: { cuit: data.cuit, parentId: null, countryCode: activeCountry }
       });
       if (existing) {
-        return { success: false, error: "El CUIT ya se encuentra registrado para una empresa principal." };
+        return { success: false, error: "El CUIT ya se encuentra registrado para una empresa principal en esta región." };
       }
     }
 
@@ -91,7 +114,9 @@ export async function createClient(data: {
         telefono: data.telefono || null,
         correo: data.correo || null,
         direccion: data.direccion || null,
-        parentId: data.parentId || null
+        parentId: data.parentId || null,
+        countryCode: activeCountry,
+        pais: countryNameMap[activeCountry] || "Argentina",
       }
     });
     revalidatePath("/clientes");

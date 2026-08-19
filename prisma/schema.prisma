@@ -60,6 +60,7 @@ model Client {
   correo             String?
   emailsAdicionales  String?
   pais               String?  @default("Argentina")
+  countryCode        String   @default("AR")
   provincia          String?
   localidad          String?
   codigoPostal       String?

@@ -255,6 +255,19 @@ export async function updateUser(
   }
 }
 
+export async function deleteUser(id: string) {
+  try {
+    await prisma.user.delete({
+      where: { id },
+    });
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return { success: false, error: "Error de servidor al eliminar usuario." };
+  }
+}
+
 export async function getCurrentUserSession() {
   try {
     const session = await getSession();

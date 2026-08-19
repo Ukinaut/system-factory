@@ -24,6 +24,11 @@ export async function getBotConfig() {
           apiUrl: "",
           apiToken: "",
           webhookSecret: "",
+          aiModel: "meta/llama-3.1-8b-instruct",
+          openaiApiKey: "",
+          temperature: 0.7,
+          systemPrompt: "Eres AITUE AI, el asistente virtual inteligente de Aitue Cominca S.A. Atiendes consultas comerciales, técnicas y de facturación.",
+          operadoresEstado: "DISPONIBLES"
         },
       });
     }
@@ -43,6 +48,11 @@ export async function saveBotConfig(data: {
   apiUrl?: string;
   apiToken?: string;
   webhookSecret?: string;
+  aiModel?: string;
+  openaiApiKey?: string;
+  temperature?: number;
+  systemPrompt?: string;
+  operadoresEstado?: string;
 }) {
   try {
     const config = await prisma.botConfig.upsert({
@@ -55,6 +65,11 @@ export async function saveBotConfig(data: {
         apiUrl: data.apiUrl || null,
         apiToken: data.apiToken || null,
         webhookSecret: data.webhookSecret || null,
+        aiModel: data.aiModel || "meta/llama-3.1-8b-instruct",
+        openaiApiKey: data.openaiApiKey || null,
+        temperature: data.temperature ?? 0.7,
+        systemPrompt: data.systemPrompt || null,
+        operadoresEstado: data.operadoresEstado || "DISPONIBLES",
       },
       create: {
         id: "global",
@@ -65,6 +80,11 @@ export async function saveBotConfig(data: {
         apiUrl: data.apiUrl || null,
         apiToken: data.apiToken || null,
         webhookSecret: data.webhookSecret || null,
+        aiModel: data.aiModel || "meta/llama-3.1-8b-instruct",
+        openaiApiKey: data.openaiApiKey || null,
+        temperature: data.temperature ?? 0.7,
+        systemPrompt: data.systemPrompt || null,
+        operadoresEstado: data.operadoresEstado || "DISPONIBLES",
       },
     });
 
@@ -73,6 +93,65 @@ export async function saveBotConfig(data: {
   } catch (error: any) {
     console.error("Error saving bot config:", error);
     return { success: false, error: "Error al guardar la configuración del bot." };
+  }
+}
+
+export async function getKnowledgeItems() {
+  try {
+    const items = await prisma.botKnowledge.findMany({
+      orderBy: { createdAt: "desc" }
+    });
+    return { success: true, items };
+  } catch (error: any) {
+    console.error("Error getting knowledge items:", error);
+    return { success: false, items: [], error: "Error al obtener pautas RAG." };
+  }
+}
+
+export async function saveKnowledgeItem(data: {
+  id?: string;
+  titulo: string;
+  categoria: string;
+  contenido: string;
+}) {
+  try {
+    let item;
+    if (data.id) {
+      item = await prisma.botKnowledge.update({
+        where: { id: data.id },
+        data: {
+          titulo: data.titulo,
+          categoria: data.categoria,
+          contenido: data.contenido
+        }
+      });
+    } else {
+      item = await prisma.botKnowledge.create({
+        data: {
+          titulo: data.titulo,
+          categoria: data.categoria,
+          contenido: data.contenido
+        }
+      });
+    }
+    revalidatePath("/bot");
+    return { success: true, item };
+  } catch (error: any) {
+    console.error("Error saving knowledge item:", error);
+    return { success: false, error: "Error al guardar la pauta RAG." };
+  }
+}
+
+export async function deleteKnowledgeItem(id: string) {
+  try {
+    await prisma.botKnowledge.delete({
+      where: { id }
+    });
+    revalidatePath("/bot");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error deleting knowledge item:", error);
+    return { success: false, error: "Error al eliminar la pauta RAG." };
   }
 }
 

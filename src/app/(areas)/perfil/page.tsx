@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { User, Shield, Key, Mail, Landmark, Phone, Briefcase, Camera, Save, CheckCircle, Upload } from "lucide-react";
-import { updateProfile } from "@/actions/users";
+import { updateProfile, getCurrentUserSession } from "@/actions/users";
 
 export default function PerfilPage() {
   const [loading, setLoading] = useState(false);
@@ -22,14 +22,9 @@ export default function PerfilPage() {
   });
 
   useEffect(() => {
-    // Leer datos de sesión desde cookie
-    const cookies = document.cookie.split("; ");
-    const sessionCookie = cookies.find((row) => row.startsWith("sessionToken="));
-    if (sessionCookie) {
-      try {
-        const token = sessionCookie.split("=")[1];
-        const decodedStr = atob(decodeURIComponent(token));
-        const data = JSON.parse(decodedStr);
+    getCurrentUserSession().then((res) => {
+      if (res.success && res.session) {
+        const data = res.session;
         setSession(data);
         setForm({
           nombre: data.nombre || "",
@@ -42,10 +37,8 @@ export default function PerfilPage() {
           fotoFileName: "",
           fotoPreview: data.fotoUrl || "",
         });
-      } catch (e) {
-        console.error("Error parsing session cookie:", e);
       }
-    }
+    });
   }, []);
 
   // Manejar selección de foto de perfil

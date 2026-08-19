@@ -4,6 +4,133 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/hash";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import fs from "fs";
+import path from "path";
+
+async function getSession() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("sessionToken")?.value;
+  if (!token) return null;
+  try {
+    const decodedStr = Buffer.from(token, "base64").toString("utf-8");
+    const session = JSON.parse(decodedStr);
+    const liveUser = await prisma.user.findUnique({
+      where: { id: session.id },
+      select: { nombre: true, correo: true, rol: true, telefono: true, fotoUrl: true, cargo: true }
+    });
+    if (liveUser) {
+      session.nombre = liveUser.nombre;
+      session.correo = liveUser.correo;
+      session.rol = liveUser.rol;
+      session.telefono = liveUser.telefono;
+      session.fotoUrl = liveUser.fotoUrl;
+      session.cargo = liveUser.cargo;
+    }
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+export async function getUsersDirectory() {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return { success: false, error: "Usuario no autenticado." };
+    }
+
+    const users = await prisma.user.findMany({
+      include: {
+        permissions: true,
+        countries: true,
+      },
+      orderBy: {
+        nombre: "asc",
+      },
+    });
+
+    return { success: true, users };
+  } catch (error: any) {
+    console.error("Error fetching users directory:", error);
+    return { success: false, error: "Error de servidor al obtener el directorio de usuarios." };
+  }
+}
+
+export async function updateProfile(data: {
+  nombre: string;
+  correo: string;
+  telefono?: string;
+  cargo?: string;
+  fotoBase64?: string;
+  fotoFileName?: string;
+  contrasena?: string;
+}) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return { success: false, error: "Usuario no autenticado." };
+    }
+
+    let finalFotoUrl = session.fotoUrl || null;
+
+    if (data.fotoBase64 && data.fotoFileName) {
+      const uploadsDir = path.join(process.cwd(), "public", "uploads", "avatars");
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const fileExtension = path.extname(data.fotoFileName) || ".png";
+      const uniqueFileName = `avatar_${session.id}_${Date.now()}${fileExtension}`;
+      const filePath = path.join(uploadsDir, uniqueFileName);
+
+      const base64Data = data.fotoBase64.replace(/^data:.*?;base64,/, "");
+      fs.writeFileSync(filePath, Buffer.from(base64Data, "base64"));
+      finalFotoUrl = `/uploads/avatars/${uniqueFileName}`;
+    }
+
+    const updateData: any = {
+      nombre: data.nombre,
+      correo: data.correo,
+      telefono: data.telefono || null,
+      cargo: data.cargo || null,
+      fotoUrl: finalFotoUrl,
+    };
+
+    if (data.contrasena && data.contrasena.trim() !== "") {
+      updateData.contrasenaHash = hashPassword(data.contrasena);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: session.id },
+      data: updateData,
+    });
+
+    // Actualizar cookie de sesión con los nuevos datos
+    const cookieStore = await cookies();
+    const updatedSession = {
+      ...session,
+      nombre: updatedUser.nombre,
+      correo: updatedUser.correo,
+      telefono: updatedUser.telefono,
+      cargo: updatedUser.cargo,
+      fotoUrl: updatedUser.fotoUrl,
+    };
+    const sessionToken = Buffer.from(JSON.stringify(updatedSession)).toString("base64");
+    cookieStore.set("sessionToken", sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7, // 1 semana
+      path: "/",
+    });
+
+    revalidatePath("/perfil");
+    revalidatePath("/admin");
+    return { success: true, user: updatedUser };
+  } catch (error: any) {
+    console.error("Error updating profile:", error);
+    return { success: false, error: error.message || "Error al actualizar perfil." };
+  }
+}
 
 export async function getUsers() {
   try {

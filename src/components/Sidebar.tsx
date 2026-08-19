@@ -157,8 +157,12 @@ export default function Sidebar({
 
       <div className="p-4 border-t border-border-custom bg-bg-subtle">
         <div className="flex items-center gap-3 mb-4 px-2">
-          <div className="w-9 h-9 bg-bg-card rounded-full flex items-center justify-center border border-border-custom">
-            <UserIcon className="w-5 h-5 text-text-muted" />
+          <div className="w-10 h-10 bg-bg-card rounded-full flex items-center justify-center border border-border-custom overflow-hidden shrink-0 shadow-sm">
+            {session?.fotoUrl ? (
+              <img src={session.fotoUrl} alt={nombre} className="w-full h-full object-cover" />
+            ) : (
+              <UserIcon className="w-5 h-5 text-text-muted" />
+            )}
           </div>
           <div className="flex-1 overflow-hidden">
             <p className="text-base font-bold text-text-primary truncate">{nombre}</p>

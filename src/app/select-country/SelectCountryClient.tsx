@@ -31,15 +31,19 @@ export default function SelectCountryClient({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSelect = (code: string, id: string) => {
     setSelectedId(id);
+    setErrorMsg(null);
     startTransition(async () => {
       const res = await selectCountryAction(code);
       if (res.success) {
-        // Redirigir a login o raíz del sistema
         router.push("/login");
         router.refresh();
+      } else {
+        setErrorMsg(res.error || "No tiene permiso para seleccionar este país.");
+        setSelectedId(null);
       }
     });
   };
@@ -64,7 +68,7 @@ export default function SelectCountryClient({
 
       <div className="w-full max-w-4xl flex flex-col items-center z-10">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <div className="inline-flex p-3 bg-white/5 border border-white/10 rounded-full mb-6 backdrop-blur-md">
             <img 
               src="/Log Star.png" 
@@ -79,6 +83,13 @@ export default function SelectCountryClient({
             Seleccione la región o subdivisión del sistema
           </p>
         </div>
+
+        {/* Error Feedback */}
+        {errorMsg && (
+          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/40 text-red-300 rounded-xl text-sm font-semibold max-w-md text-center shadow-lg backdrop-blur-md animate-fade-in">
+            ⚠️ {errorMsg}
+          </div>
+        )}
 
         {/* Countries Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-3xl">

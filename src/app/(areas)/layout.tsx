@@ -23,23 +23,43 @@ export default async function AreasLayout({ children }: { children: React.ReactN
     redirect("/login");
   }
 
-  // Fetch latest permissions and role dynamically
-  if (sessionData && sessionData.id) {
+  let selectedCountry = cookieStore.get("selectedCountry")?.value || null;
+
+  // Fetch latest permissions, role, and country assignments dynamically
+  if (sessionData && (sessionData.id || sessionData.correo)) {
     try {
-      const liveUser = await prisma.user.findUnique({
-        where: { id: sessionData.id },
-        include: { permissions: true }
+      const liveUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            sessionData.id ? { id: sessionData.id } : undefined,
+            sessionData.correo ? { correo: sessionData.correo } : undefined,
+          ].filter(Boolean) as any,
+        },
+        include: { permissions: true, countries: true }
       });
       if (liveUser) {
         sessionData.rol = liveUser.rol;
         sessionData.permissions = liveUser.permissions.map(p => p.areaPermitida);
+        const allowedCountries = liveUser.countries.map(c => c.countryCode);
+        
+        // Si no es ADMIN y tiene restricciones explícitas de países asignados
+        if (liveUser.rol !== "ADMIN" && allowedCountries.length > 0) {
+          // Si el país seleccionado no está en la lista autorizada, corregir automáticamente al primer país permitido
+          if (!selectedCountry || !allowedCountries.includes(selectedCountry)) {
+            selectedCountry = allowedCountries[0];
+            cookieStore.set("selectedCountry", selectedCountry, {
+              httpOnly: false,
+              secure: process.env.NODE_ENV === "production",
+              maxAge: 60 * 60 * 24 * 365,
+              path: "/"
+            });
+          }
+        }
       }
     } catch (dbErr) {
       console.error("Error fetching live session data:", dbErr);
     }
   }
-
-  const selectedCountry = cookieStore.get("selectedCountry")?.value || null;
 
   return (
     <div className="flex min-h-screen bg-bg-main text-text-primary transition-all duration-200">

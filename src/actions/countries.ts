@@ -24,14 +24,52 @@ async function checkAndSeedCountries() {
 export async function getCountries() {
   try {
     await checkAndSeedCountries();
-    const countries = await prisma.country.findMany({
+    const cookieStore = await cookies();
+    const token = cookieStore.get("sessionToken")?.value;
+
+    let userRole = "OPERATOR";
+    let allowedCountryCodes: string[] = [];
+
+    if (token) {
+      try {
+        const decodedStr = Buffer.from(token, "base64").toString("utf-8");
+        const session = JSON.parse(decodedStr);
+        if (session && (session.id || session.correo)) {
+          const user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                session.id ? { id: session.id } : undefined,
+                session.correo ? { correo: session.correo } : undefined,
+              ].filter(Boolean) as any,
+            },
+            include: { countries: true },
+          });
+          if (user) {
+            userRole = user.rol;
+            allowedCountryCodes = user.countries.map((c) => c.countryCode);
+          }
+        }
+      } catch (err) {
+        console.error("Error decoding session in getCountries:", err);
+      }
+    }
+
+    const allActive = await prisma.country.findMany({
       where: { activo: true },
       orderBy: [
         { isPrincipal: "desc" },
         { nombre: "asc" }
       ]
     });
-    return { success: true, countries };
+
+    // Si es ADMIN o no tiene restricciones explícitas de país, mostrar todos los países activos
+    if (userRole === "ADMIN" || allowedCountryCodes.length === 0) {
+      return { success: true, countries: allActive };
+    }
+
+    // De lo contrario, filtrar estrictamente los países asignados al usuario en UserCountry
+    const filtered = allActive.filter((c) => allowedCountryCodes.includes(c.code));
+    return { success: true, countries: filtered };
   } catch (error) {
     console.error("Error fetching countries:", error);
     return { success: false, countries: [], error: "Error al obtener países." };
@@ -144,8 +182,40 @@ export async function deleteCountry(id: string) {
 export async function selectCountryAction(code: string) {
   try {
     const cookieStore = await cookies();
+    const token = cookieStore.get("sessionToken")?.value;
+
+    if (token) {
+      try {
+        const decodedStr = Buffer.from(token, "base64").toString("utf-8");
+        const session = JSON.parse(decodedStr);
+        if (session && (session.id || session.correo)) {
+          const user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                session.id ? { id: session.id } : undefined,
+                session.correo ? { correo: session.correo } : undefined,
+              ].filter(Boolean) as any,
+            },
+            include: { countries: true },
+          });
+
+          if (user && user.rol !== "ADMIN") {
+            const allowedCodes = user.countries.map((c) => c.countryCode);
+            if (allowedCodes.length > 0 && !allowedCodes.includes(code)) {
+              return {
+                success: false,
+                error: `Acceso Denegado: Su usuario solo tiene permiso para acceder a las regiones: [${allowedCodes.join(", ")}].`,
+              };
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error validating user country permissions in selectCountryAction:", err);
+      }
+    }
+
     cookieStore.set("selectedCountry", code, {
-      httpOnly: false, // Permitir acceso en cliente si se necesita
+      httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 365, // 1 año
       path: "/"

@@ -202,11 +202,27 @@ model Claim {
 }
 
 model BotConfig {
-  id                  String  @id @default("global")
-  activo              Boolean @default(true)
+  id                  String   @id @default("global")
+  activo              Boolean  @default(true)
   mensajeBienvenida   String
   mensajeSoporte      String
   mensajeFueraHorario String
+  apiUrl              String?
+  apiToken            String?
+  webhookSecret       String?
+  updatedAt           DateTime @default(now()) @updatedAt
+}
+
+model WhatsAppMessage {
+  id            String   @id @default(uuid())
+  mensajeId     String?
+  remitente     String
+  nombre        String?
+  contenido     String
+  direccion     String   @default("ENTRANTE")
+  estado        String   @default("RECIBIDO")
+  countryCode   String   @default("AR")
+  createdAt     DateTime @default(now())
 }
 
 // 4. Facturación y Cobranzas

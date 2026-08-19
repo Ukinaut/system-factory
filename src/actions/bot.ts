@@ -21,6 +21,9 @@ export async function getBotConfig() {
           mensajeBienvenida: DEFAULT_WELCOME,
           mensajeSoporte: DEFAULT_SUPPORT,
           mensajeFueraHorario: DEFAULT_OUT_HOURS,
+          apiUrl: "",
+          apiToken: "",
+          webhookSecret: "",
         },
       });
     }
@@ -37,6 +40,9 @@ export async function saveBotConfig(data: {
   mensajeBienvenida: string;
   mensajeSoporte: string;
   mensajeFueraHorario: string;
+  apiUrl?: string;
+  apiToken?: string;
+  webhookSecret?: string;
 }) {
   try {
     const config = await prisma.botConfig.upsert({
@@ -46,6 +52,9 @@ export async function saveBotConfig(data: {
         mensajeBienvenida: data.mensajeBienvenida,
         mensajeSoporte: data.mensajeSoporte,
         mensajeFueraHorario: data.mensajeFueraHorario,
+        apiUrl: data.apiUrl || null,
+        apiToken: data.apiToken || null,
+        webhookSecret: data.webhookSecret || null,
       },
       create: {
         id: "global",
@@ -53,6 +62,9 @@ export async function saveBotConfig(data: {
         mensajeBienvenida: data.mensajeBienvenida,
         mensajeSoporte: data.mensajeSoporte,
         mensajeFueraHorario: data.mensajeFueraHorario,
+        apiUrl: data.apiUrl || null,
+        apiToken: data.apiToken || null,
+        webhookSecret: data.webhookSecret || null,
       },
     });
 
@@ -61,5 +73,81 @@ export async function saveBotConfig(data: {
   } catch (error: any) {
     console.error("Error saving bot config:", error);
     return { success: false, error: "Error al guardar la configuración del bot." };
+  }
+}
+
+export async function getWhatsAppMessages() {
+  try {
+    const messages = await prisma.whatsAppMessage.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+    return { success: true, messages };
+  } catch (error: any) {
+    console.error("Error getting WhatsApp messages:", error);
+    return { success: false, messages: [], error: "Error al obtener mensajes de WhatsApp." };
+  }
+}
+
+export async function syncExternalWhatsAppApi() {
+  try {
+    const config = await prisma.botConfig.findUnique({
+      where: { id: "global" }
+    });
+
+    if (!config || !config.apiUrl) {
+      return { success: false, error: "No se ha configurado la URL de la API externa de WhatsApp." };
+    }
+
+    const headers: Record<string, string> = {
+      "Accept": "application/json",
+    };
+
+    if (config.apiToken) {
+      headers["Authorization"] = `Bearer ${config.apiToken}`;
+    }
+
+    const response = await fetch(config.apiUrl, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return { success: false, error: `Error HTTP ${response.status} de la API externa: ${errText}` };
+    }
+
+    const data = await response.json();
+    const rawMessages = Array.isArray(data) ? data : (data.messages || data.data || []);
+
+    let importedCount = 0;
+    for (const msg of rawMessages) {
+      const remitente = msg.remitente || msg.from || msg.phone || msg.numero || "Desconocido";
+      const nombre = msg.nombre || msg.contactName || msg.name || null;
+      const contenido = msg.contenido || msg.text || msg.body || msg.mensaje || "";
+      const mensajeId = msg.id || msg.mensajeId || msg.message_id || null;
+
+      if (!contenido) continue;
+
+      // Upsert o create mensaje
+      await prisma.whatsAppMessage.create({
+        data: {
+          mensajeId: mensajeId ? String(mensajeId) : null,
+          remitente: String(remitente),
+          nombre: nombre ? String(nombre) : null,
+          contenido: String(contenido),
+          direccion: msg.direccion || (msg.isIncoming ? "ENTRANTE" : "SALIENTE"),
+          estado: msg.estado || "RECIBIDO",
+        }
+      });
+      importedCount++;
+    }
+
+    revalidatePath("/bot");
+    return { success: true, count: importedCount };
+  } catch (error: any) {
+    console.error("Error syncing external WhatsApp API:", error);
+    return { success: false, error: error.message || "Error al conectar con la API externa de WhatsApp." };
   }
 }

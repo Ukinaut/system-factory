@@ -1,11 +1,50 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useEffect, useActionState } from "react";
 import { loginAction } from "@/actions/auth";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(loginAction, null);
+
+  // Typewriter effect state for top right slogan
+  const fullText1 = "SI VES";
+  const fullText2 = "EL CIELO ,";
+  const fullText3 = "ESTAMOS";
+
+  const line1Len = fullText1.length;
+  const line2Len = fullText2.length;
+  const totalLength = line1Len + line2Len + fullText3.length;
+
+  const [charIndex, setCharIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (!isDeleting && charIndex < totalLength) {
+      timer = setTimeout(() => {
+        setCharIndex((prev) => prev + 1);
+      }, 70);
+    } else if (!isDeleting && charIndex === totalLength) {
+      timer = setTimeout(() => {
+        setIsDeleting(true);
+      }, 3500);
+    } else if (isDeleting && charIndex > 0) {
+      timer = setTimeout(() => {
+        setCharIndex((prev) => prev - 1);
+      }, 35);
+    } else if (isDeleting && charIndex === 0) {
+      timer = setTimeout(() => {
+        setIsDeleting(false);
+      }, 800);
+    }
+    return () => clearTimeout(timer);
+  }, [charIndex, isDeleting, totalLength]);
+
+  const currentLine1 = fullText1.slice(0, Math.min(charIndex, line1Len));
+  const currentLine2 = charIndex > line1Len ? fullText2.slice(0, Math.min(charIndex - line1Len, line2Len)) : "";
+  const currentLine3 = charIndex > line1Len + line2Len ? fullText3.slice(0, charIndex - line1Len - line2Len) : "";
+  const showDot = charIndex >= totalLength;
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#070b14] text-gray-100">
@@ -24,7 +63,7 @@ export default function LoginPage() {
           <img 
             src="/logo.png" 
             alt="Aitue Logo" 
-            className="w-12 h-12 sm:w-14 sm:h-14 object-contain relative z-10 filter drop-shadow-[0_0_18px_rgba(0,112,243,0.9)] animate-pulse" 
+            className="w-12 h-12 sm:w-14 sm:h-14 object-contain relative z-10 filter drop-shadow-[0_0_20px_rgba(0,112,243,0.9)] animate-pulse" 
           />
         </div>
         <div>
@@ -37,12 +76,35 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Esquina Superior Derecha: Texto Animado que aparece y desaparece */}
-      <div className="absolute top-6 right-6 sm:top-8 sm:right-8 z-20 text-right">
-        <div className="px-4 py-2 rounded-2xl bg-blue-950/50 border border-blue-400/30 backdrop-blur-md shadow-[0_0_20px_rgba(0,102,255,0.2)]">
-          <span className="text-xs sm:text-sm font-black tracking-wider text-blue-300 uppercase animate-pulse drop-shadow-[0_0_15px_rgba(59,130,246,0.9)]">
-            ¡Si ves el Cielo, Estamos!
-          </span>
+      {/* Esquina Superior Derecha: Texto Estilizado con Línea Azul y Animación de Escritura */}
+      <div className="absolute top-6 right-6 sm:top-10 sm:right-10 z-20 flex items-stretch gap-4 pointer-events-none">
+        {/* Blue vertical accent line matching the sample image */}
+        <div className="w-[3px] bg-[#0070f3] rounded-full shadow-[0_0_12px_rgba(0,112,243,0.8)] shrink-0 my-0.5" />
+        
+        {/* Typewriter Text layout */}
+        <div className="flex flex-col justify-between text-left font-sans min-h-[64px] min-w-[160px] py-0.5">
+          <div className="text-xs sm:text-sm text-slate-200 font-light uppercase tracking-[0.28em] h-5 flex items-center leading-none">
+            {currentLine1}
+            {charIndex > 0 && charIndex <= line1Len && (
+              <span className="inline-block w-1.5 h-3.5 bg-[#0070f3] ml-0.5 animate-pulse" />
+            )}
+          </div>
+          <div className="text-xs sm:text-sm text-slate-200 font-light uppercase tracking-[0.28em] h-5 flex items-center leading-none">
+            {currentLine2}
+            {charIndex > line1Len && charIndex <= line1Len + line2Len && (
+              <span className="inline-block w-1.5 h-3.5 bg-[#0070f3] ml-0.5 animate-pulse" />
+            )}
+          </div>
+          <div className="text-sm sm:text-base text-white font-extrabold tracking-[0.22em] uppercase h-6 flex items-center leading-none">
+            {currentLine3}
+            {showDot ? (
+              <span className="text-[#0070f3] font-black text-lg ml-0.5 drop-shadow-[0_0_8px_#0070f3]">.</span>
+            ) : (
+              charIndex > line1Len + line2Len && (
+                <span className="inline-block w-1.5 h-4 bg-[#0070f3] ml-0.5 animate-pulse" />
+              )
+            )}
+          </div>
         </div>
       </div>
 
@@ -107,6 +169,7 @@ export default function LoginPage() {
     </div>
   );
 }
+
 
 
 

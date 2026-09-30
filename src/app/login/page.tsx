@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useActionState } from "react";
 import { loginAction } from "@/actions/auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, Globe } from "lucide-react";
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(loginAction, null);
@@ -165,6 +165,21 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Esquina Inferior Izquierda: Planeta Girando con Texto 'Conectando un mundo sin límites.' */}
+      <div className="absolute bottom-6 left-6 sm:bottom-8 sm:left-8 z-20 flex items-center gap-3.5 pointer-events-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+        <div className="relative flex items-center justify-center p-2.5 rounded-full border border-slate-400/30 bg-[#080d19]/60 backdrop-blur-md shadow-[0_0_15px_rgba(0,112,243,0.3)]">
+          <Globe className="w-6 h-6 text-slate-200 animate-[spin_12s_linear_infinite]" />
+        </div>
+        <div className="flex flex-col justify-center text-left leading-tight">
+          <span className="text-sm sm:text-base font-normal text-slate-100 tracking-wide">
+            Conectando un mundo
+          </span>
+          <span className="text-sm sm:text-base font-normal text-slate-100 tracking-wide">
+            sin límites.
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -262,9 +262,14 @@ export default function VentaRapidaPage() {
 
         {/* Footer info */}
         <div className="flex justify-between items-center border-t border-border-custom/50 pt-6">
-          <div className="text-right">
-            <span className="text-xs text-text-muted font-bold block uppercase">Total a Cobrar</span>
-            <span className="text-2xl font-black text-[#0078D7]">{moneda === "USD" ? "US$" : "$"} {total.toLocaleString("es-AR")}</span>
+          <div className="flex items-center gap-3">
+            <div>
+              <span className="text-xs text-text-muted font-bold block uppercase">Total a Cobrar</span>
+              <span className="text-2xl font-black text-[#0078D7]">{moneda === "USD" ? "US$" : "$"} {total.toLocaleString("es-AR")}</span>
+            </div>
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-sm">
+              Precio final sin IMPUESTOS
+            </span>
           </div>
           <button
             type="submit"

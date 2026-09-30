@@ -130,7 +130,7 @@ export async function updateProfile(data: {
     const sessionToken = Buffer.from(JSON.stringify(updatedSession)).toString("base64");
     cookieStore.set("sessionToken", sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       maxAge: 60 * 60 * 24 * 7, // 1 semana
       path: "/",
     });

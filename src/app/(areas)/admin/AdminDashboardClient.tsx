@@ -11,10 +11,12 @@ export default function AdminDashboardClient({
   initialUsers,
   initialCountries,
   initialStats,
+  initialRecycleItems = [],
 }: {
   initialUsers: any[];
   initialCountries: any[];
   initialStats: any;
+  initialRecycleItems?: any[];
 }) {
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "countries">("overview");
   const [stats, setStats] = useState(initialStats);

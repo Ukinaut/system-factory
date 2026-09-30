@@ -101,7 +101,7 @@ export default function LaboratorioDashboard() {
   }
 
   return (
-    <div className="max-w-screen-2xl mx-auto pb-12 overflow-x-hidden">
+    <div className="w-full pb-12 overflow-x-hidden">
       <div className="flex justify-between items-end mb-8">
         <div>
           <h1 className="text-3xl font-bold text-text-primary tracking-wide flex items-center gap-3 mb-2">

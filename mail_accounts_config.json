@@ -1,0 +1,14 @@
+{
+  "91c47a46-a041-41f5-8872-6a66c313b9fc": {
+    "provider": "GOOGLE_WORKSPACE",
+    "email": "ukinauta01@gmail.com",
+    "displayName": "Hugo A Flores",
+    "appPassword": "mzqe djko gbws wszv",
+    "smtpHost": "smtp.gmail.com",
+    "smtpPort": 465,
+    "smtpUser": "ukinauta01@gmail.com",
+    "smtpPass": "mzqe djko gbws wszv",
+    "isLinked": true,
+    "linkedAt": "2026-08-26T21:13:46.912Z"
+  }
+}

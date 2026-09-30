@@ -54,6 +54,7 @@ const ROLES_DISPONIBLES = [
 const AREAS_DISPONIBLES = [
   { id: "VENTAS", name: "Ventas" },
   { id: "VENTAS_GENERALES", name: "Ventas Generales" },
+  { id: "TIENDA", name: "Tienda (API)" },
   { id: "MERCADO_LIBRE", name: "Mercado Libre" },
   { id: "CLIENTES", name: "Clientes" },
   { id: "FACTURACION", name: "Facturación" },
@@ -70,10 +71,10 @@ const AREAS_DISPONIBLES = [
 ];
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
-  ADMIN: ["VENTAS", "VENTAS_GENERALES", "MERCADO_LIBRE", "CLIENTES", "FACTURACION", "COBRANZAS", "COMPRAS", "ORDEN_COMPRA", "OC_EXTERIOR", "OPERATIVA", "ENVIOS", "STOCK", "LABORATORIO", "BOT", "ESTADO_PEDIDOS", "ADMIN"],
-  SUPERVISOR: ["VENTAS", "VENTAS_GENERALES", "MERCADO_LIBRE", "CLIENTES", "FACTURACION", "COBRANZAS", "COMPRAS", "ORDEN_COMPRA", "OC_EXTERIOR", "OPERATIVA", "ENVIOS", "STOCK", "LABORATORIO", "ESTADO_PEDIDOS"],
-  OPERATOR: ["VENTAS", "VENTAS_GENERALES", "MERCADO_LIBRE", "CLIENTES", "OPERATIVA", "ENVIOS", "STOCK", "LABORATORIO", "ORDEN_COMPRA", "ESTADO_PEDIDOS"],
-  VIEWER: ["VENTAS", "VENTAS_GENERALES", "MERCADO_LIBRE", "CLIENTES", "FACTURACION", "COBRANZAS", "OPERATIVA", "ENVIOS", "STOCK", "LABORATORIO", "ESTADO_PEDIDOS"]
+  ADMIN: ["VENTAS", "VENTAS_GENERALES", "TIENDA", "MERCADO_LIBRE", "CLIENTES", "FACTURACION", "COBRANZAS", "COMPRAS", "ORDEN_COMPRA", "OC_EXTERIOR", "OPERATIVA", "ENVIOS", "STOCK", "LABORATORIO", "BOT", "ESTADO_PEDIDOS", "ADMIN"],
+  SUPERVISOR: ["VENTAS", "VENTAS_GENERALES", "TIENDA", "MERCADO_LIBRE", "CLIENTES", "FACTURACION", "COBRANZAS", "COMPRAS", "ORDEN_COMPRA", "OC_EXTERIOR", "OPERATIVA", "ENVIOS", "STOCK", "LABORATORIO", "ESTADO_PEDIDOS"],
+  OPERATOR: ["VENTAS", "VENTAS_GENERALES", "TIENDA", "MERCADO_LIBRE", "CLIENTES", "OPERATIVA", "ENVIOS", "STOCK", "LABORATORIO", "ORDEN_COMPRA", "ESTADO_PEDIDOS"],
+  VIEWER: ["VENTAS", "VENTAS_GENERALES", "TIENDA", "MERCADO_LIBRE", "CLIENTES", "FACTURACION", "COBRANZAS", "OPERATIVA", "ENVIOS", "STOCK", "LABORATORIO", "ESTADO_PEDIDOS"]
 };
 
 export default function AdminPanelClient({ initialUsers }: { initialUsers: User[] }) {
@@ -262,7 +263,7 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
   }).length;
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+    <div className="space-y-8 w-full pb-12">
       
       {/* STATS HEADER */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -338,17 +339,26 @@ export default function AdminPanelClient({ initialUsers }: { initialUsers: User[
           </div>
 
           {activeTab === "list" && (
-            <div className="relative w-full max-w-xs">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-text-muted" />
-              </span>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Buscar por nombre, correo, cuit..."
-                className="w-full bg-bg-subtle border border-border-custom rounded-md pl-9 pr-4 py-2 text-sm text-text-primary placeholder-text-muted focus:border-[#0078D7] outline-none transition-colors"
-              />
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-text-muted" />
+                </span>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Buscar por nombre, correo, cuit..."
+                  className="w-full bg-bg-subtle border border-border-custom rounded-md pl-9 pr-4 py-2 text-sm text-text-primary placeholder-text-muted focus:border-[#0078D7] outline-none transition-colors"
+                />
+              </div>
+              <button
+                onClick={() => { resetForm(); setActiveTab("form"); }}
+                className="px-4 py-2 bg-[#0078D7] hover:bg-[#005a9e] text-white rounded-md font-bold text-sm transition-all flex items-center gap-2 shrink-0 shadow-md shadow-[#0078D7]/20 cursor-pointer"
+              >
+                <UserPlus className="w-4 h-4" />
+                Registrar Nuevo Usuario
+              </button>
             </div>
           )}
         </div>

@@ -9,6 +9,12 @@ interface SendEmailParams {
   fromName?: string;
   fromEmail?: string;
   replyTo?: string;
+  smtpConfig?: {
+    host?: string;
+    port?: number;
+    user?: string;
+    pass?: string;
+  };
 }
 
 export async function sendEmail({
@@ -18,30 +24,33 @@ export async function sendEmail({
   text,
   fromName,
   fromEmail,
-  replyTo
+  replyTo,
+  smtpConfig
 }: SendEmailParams) {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT) || 587;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const host = smtpConfig?.host || process.env.SMTP_HOST || "smtp.gmail.com";
+  const port = Number(smtpConfig?.port || process.env.SMTP_PORT) || 465;
+  const user = smtpConfig?.user || process.env.SMTP_USER;
+  const rawPass = smtpConfig?.pass || process.env.SMTP_PASS || "";
+  const pass = rawPass.replace(/\s+/g, ""); // Limpiar espacios de la contraseña de aplicación de Google
 
   const senderName = fromName || process.env.SMTP_FROM_NAME || "SYSTEM FACTORY";
-  const replyToEmail = replyTo || fromEmail || user;
+  const senderEmail = fromEmail || user || "notificaciones@systemfactory.com";
+  const replyToEmail = replyTo || senderEmail;
   const recipients = Array.isArray(to) ? to.filter(Boolean) : [to].filter(Boolean);
 
   if (recipients.length === 0) {
     return { success: false, error: "Sin destinatarios válidos." };
   }
 
-  // Si no hay configuración SMTP cargada en .env, registrar simulacro en consola
-  if (!host || !user || !pass) {
-    console.log(`\n[EMAIL SIMULATION - AUDIT BACKUP MULTIUSER] ------------------`);
-    console.log(`From: "${senderName}" <${user || "notificaciones@systemfactory.com"}>`);
-    console.log(`Reply-To (Operador): ${replyToEmail}`);
-    console.log(`To (Integrantes de Área): ${recipients.join(", ")}`);
+  // Si no hay credenciales SMTP cargadas, registrar auditoría en consola y retornar simulación exitosa
+  if (!user || !pass) {
+    console.log(`\n[GOOGLE WORKSPACE EMAIL SIMULATION] ------------------`);
+    console.log(`From: "${senderName}" <${senderEmail}>`);
+    console.log(`Reply-To: ${replyToEmail}`);
+    console.log(`To: ${recipients.join(", ")}`);
     console.log(`Subject: ${subject}`);
     console.log(`Body (Snippet): ${text || html.replace(/<[^>]+>/g, "").slice(0, 150)}...`);
-    console.log(`----------------------------------------------------------\n`);
+    console.log(`------------------------------------------------------\n`);
     return { success: true, simulated: true };
   }
 
@@ -54,7 +63,6 @@ export async function sendEmail({
         user,
         pass
       },
-      // Pool de conexiones para máxima concurrencia de múltiples operadores
       pool: true,
       maxConnections: 5,
       maxMessages: 100
@@ -71,8 +79,35 @@ export async function sendEmail({
 
     return { success: true, messageId: info.messageId };
   } catch (error: any) {
-    console.error("[EMAIL ERROR]:", error);
-    return { success: false, error: error?.message || "Error al enviar e-mail" };
+    console.error("[GOOGLE WORKSPACE / SMTP EMAIL ERROR]:", error);
+    return { success: false, error: error?.message || "Error al enviar e-mail a través del servidor SMTP." };
+  }
+}
+
+/** Verifica en tiempo real la conexión SMTP con Google Workspace o servidor personalizado */
+export async function verifySmtpConnection(config: { host: string; port: number; user: string; pass: string }) {
+  if (!config.user || !config.pass) {
+    return { success: false, error: "Ingresa el correo y la contraseña de aplicación de Google." };
+  }
+
+  const cleanPass = config.pass.replace(/\s+/g, ""); // Eliminar espacios automáticamente
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: config.host || "smtp.gmail.com",
+      port: Number(config.port) || 465,
+      secure: Number(config.port) === 465,
+      auth: {
+        user: config.user,
+        pass: cleanPass
+      }
+    });
+
+    await transporter.verify();
+    return { success: true, message: "Conexión exitosa con Google Workspace (smtp.gmail.com)." };
+  } catch (error: any) {
+    console.error("[SMTP VERIFY ERROR]:", error);
+    return { success: false, error: error?.message || "Falló la autenticación con Google Workspace. Revisa el correo y la Contraseña de Aplicación de 16 caracteres." };
   }
 }
 
@@ -108,7 +143,7 @@ export async function getAreaRecipients(areaName: string, actorEmail?: string): 
   }
 }
 
-/** Plantilla base elegante con estética SYSTEM FACTORY */
+/** Plantilla base elegante con estética SYSTEM FACTORY & Google Workspace */
 export function buildEmailTemplate({
   title,
   preheader,
@@ -128,12 +163,12 @@ export function buildEmailTemplate({
         <style>
           body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
           .container { max-width: 600px; margin: 0 auto; background-color: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; }
-          .header { background-color: #0f172a; padding: 24px; text-align: center; border-bottom: 2px solid #a855f7; }
+          .header { background-color: #0f172a; padding: 24px; text-align: center; border-bottom: 2px solid #0078d4; }
           .logo { font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 1px; }
-          .logo span { color: #a855f7; }
+          .logo span { color: #0078d4; }
           .content { padding: 32px 24px; line-height: 1.6; font-size: 14px; color: #cbd5e1; }
           .title { font-size: 18px; font-weight: 700; color: #f8fafc; margin-bottom: 16px; }
-          .badge { display: inline-block; background-color: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; margin-bottom: 16px; border: 1px solid rgba(168, 85, 247, 0.3); }
+          .badge { display: inline-block; background-color: rgba(0, 120, 212, 0.15); color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; margin-bottom: 16px; border: 1px solid rgba(0, 120, 212, 0.3); }
           .footer { background-color: #0f172a; padding: 16px 24px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #334155; }
         </style>
       </head>
@@ -149,13 +184,13 @@ export function buildEmailTemplate({
             ${
               senderInfo
                 ? `<div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #334155; font-size: 12px; color: #94a3b8;">
-                    Operador / Autor: <strong>${senderInfo.nombre}</strong> ${senderInfo.area ? `(${senderInfo.area})` : ""}
+                    Enviado desde cuenta corporativa Google Workspace por: <strong>${senderInfo.nombre}</strong> ${senderInfo.area ? `(${senderInfo.area})` : ""}
                    </div>`
                 : ""
             }
           </div>
           <div class="footer">
-            SYSTEM FACTORY &copy; ${new Date().getFullYear()} - Respaldo y Registro de Operaciones.
+            SYSTEM FACTORY &copy; ${new Date().getFullYear()} - Conectividad & Telecomunicaciones Satelitales.
           </div>
         </div>
       </body>

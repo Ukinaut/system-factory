@@ -170,6 +170,84 @@ export async function getDashboardStats() {
       amount: monthlyExpenses[month],
     }));
 
+    // 6. Estadísticas de Cobranzas
+    const [allInvoices, activeServices] = await Promise.all([
+      prisma.invoice.findMany({
+        include: {
+          sale: { select: { total: true, moneda: true } },
+          payments: true,
+        },
+      }),
+      prisma.service.findMany({
+        where: { status: "ACTIVO" },
+      }),
+    ]);
+
+    let totalPendienteArs = 0;
+    let totalPendienteUsd = 0;
+    let totalVencidoArs = 0;
+    let facturasVencidasCount = 0;
+    let totalCobradoArs = 0;
+    let totalCobradoUsd = 0;
+    let facturasSaldadasCount = 0;
+    let ordenesConSaldoCount = 0;
+
+    const hoy = new Date();
+
+    allInvoices.forEach((inv) => {
+      const totalPagado = (inv.payments || []).reduce(
+        (sum, p) => sum + (p.montoCobrado || 0) + (p.montoRetenciones || 0),
+        0
+      );
+      const totalFactura = inv.sale?.total || 0;
+      const saldoPendiente = inv.saldoPendiente !== null && inv.saldoPendiente !== undefined
+        ? inv.saldoPendiente
+        : Math.max(0, totalFactura - totalPagado);
+      const estadoCobro = inv.estadoCobro || (saldoPendiente <= 0.05 ? "PAGADO" : "PENDIENTE");
+
+      if (inv.sale?.moneda === "USD") {
+        totalCobradoUsd += totalPagado;
+      } else {
+        totalCobradoArs += totalPagado;
+      }
+
+      if (estadoCobro === "PAGADO") {
+        facturasSaldadasCount++;
+      } else {
+        ordenesConSaldoCount++;
+        if (inv.sale?.moneda === "USD") {
+          totalPendienteUsd += saldoPendiente;
+        } else {
+          totalPendienteArs += saldoPendiente;
+        }
+
+        const fechaFactura = new Date(inv.fecha);
+        const vencimiento = new Date(fechaFactura);
+        vencimiento.setDate(vencimiento.getDate() + 15);
+        if (hoy > vencimiento) {
+          facturasVencidasCount++;
+          if (inv.sale?.moneda === "ARS") {
+            totalVencidoArs += saldoPendiente;
+          }
+        }
+      }
+    });
+
+    const abonosClientIds = new Set(activeServices.map((s) => s.clientId));
+
+    const cobranzasStats = {
+      totalPendienteArs,
+      totalPendienteUsd,
+      ordenesConSaldoCount,
+      totalVencidoArs,
+      facturasVencidasCount,
+      totalCobradoArs,
+      totalCobradoUsd,
+      facturasSaldadasCount,
+      abonosCount: abonosClientIds.size,
+      serviciosActivosCount: activeServices.length,
+    };
+
     return {
       success: true,
       data: {
@@ -186,6 +264,7 @@ export async function getDashboardStats() {
         totalImportARS,
         totalImportUSD,
         monthlyTrend,
+        cobranzasStats,
       },
     };
   } catch (error: any) {

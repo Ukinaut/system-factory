@@ -3,8 +3,8 @@
 export async function scrapeBnaRates() {
   try {
     const [resOficial, resMayorista] = await Promise.all([
-      fetch("https://dolarapi.com/v1/dolares/oficial", { cache: "no-store" }),
-      fetch("https://dolarapi.com/v1/dolares/mayorista", { cache: "no-store" })
+      fetch("https://dolarapi.com/v1/dolares/oficial", { next: { revalidate: 300 } }),
+      fetch("https://dolarapi.com/v1/dolares/mayorista", { next: { revalidate: 300 } })
     ]);
 
     let usd_billete = 1510.00; // defaults matching screenshot

@@ -37,10 +37,14 @@ export default function SelectCountryClient({
     setSelectedId(id);
     setErrorMsg(null);
     startTransition(async () => {
+      try {
+        document.cookie = `selectedCountry=${code}; path=/; max-age=31536000; SameSite=Lax`;
+      } catch (e) {
+        console.error("Error setting client cookie:", e);
+      }
       const res = await selectCountryAction(code);
       if (res.success) {
-        router.push("/login");
-        router.refresh();
+        window.location.href = "/login";
       } else {
         setErrorMsg(res.error || "No tiene permiso para seleccionar este país.");
         setSelectedId(null);

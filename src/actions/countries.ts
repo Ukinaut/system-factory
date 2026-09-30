@@ -34,6 +34,9 @@ export async function getCountries() {
       try {
         const decodedStr = Buffer.from(token, "base64").toString("utf-8");
         const session = JSON.parse(decodedStr);
+        if (session?.rol === "ADMIN" || session?.correo === "admin@systemfactory.com" || (Array.isArray(session?.permissions) && session.permissions.includes("ADMIN"))) {
+          userRole = "ADMIN";
+        }
         if (session && (session.id || session.correo)) {
           const user = await prisma.user.findFirst({
             where: {
@@ -45,7 +48,11 @@ export async function getCountries() {
             include: { countries: true },
           });
           if (user) {
-            userRole = user.rol;
+            if (user.rol === "ADMIN" || user.correo === "admin@systemfactory.com") {
+              userRole = "ADMIN";
+            } else {
+              userRole = user.rol;
+            }
             allowedCountryCodes = user.countries.map((c) => c.countryCode);
           }
         }
@@ -188,24 +195,27 @@ export async function selectCountryAction(code: string) {
       try {
         const decodedStr = Buffer.from(token, "base64").toString("utf-8");
         const session = JSON.parse(decodedStr);
-        if (session && (session.id || session.correo)) {
-          const user = await prisma.user.findFirst({
-            where: {
-              OR: [
-                session.id ? { id: session.id } : undefined,
-                session.correo ? { correo: session.correo } : undefined,
-              ].filter(Boolean) as any,
-            },
-            include: { countries: true },
-          });
+        if (session) {
+          const isAdmin = session.rol === "ADMIN" || session.correo === "admin@systemfactory.com" || (Array.isArray(session.permissions) && session.permissions.includes("ADMIN"));
+          if (!isAdmin && (session.id || session.correo)) {
+            const user = await prisma.user.findFirst({
+              where: {
+                OR: [
+                  session.id ? { id: session.id } : undefined,
+                  session.correo ? { correo: session.correo } : undefined,
+                ].filter(Boolean) as any,
+              },
+              include: { countries: true },
+            });
 
-          if (user && user.rol !== "ADMIN") {
-            const allowedCodes = user.countries.map((c) => c.countryCode);
-            if (allowedCodes.length > 0 && !allowedCodes.includes(code)) {
-              return {
-                success: false,
-                error: `Acceso Denegado: Su usuario solo tiene permiso para acceder a las regiones: [${allowedCodes.join(", ")}].`,
-              };
+            if (user && user.rol !== "ADMIN" && user.correo !== "admin@systemfactory.com") {
+              const allowedCodes = user.countries.map((c) => c.countryCode);
+              if (allowedCodes.length > 0 && !allowedCodes.includes(code)) {
+                return {
+                  success: false,
+                  error: `Acceso Denegado: Su usuario solo tiene permiso para acceder a las regiones: [${allowedCodes.join(", ")}].`,
+                };
+              }
             }
           }
         }
@@ -216,7 +226,7 @@ export async function selectCountryAction(code: string) {
 
     cookieStore.set("selectedCountry", code, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       maxAge: 60 * 60 * 24 * 365, // 1 año
       path: "/"
     });

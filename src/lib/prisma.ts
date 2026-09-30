@@ -6,4 +6,8 @@ const globalForPrisma = globalThis as unknown as {
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient();
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+globalForPrisma.prisma = prisma;
+
+// Asegurar que SQLite use modo WAL y timeout de espera en conexiones de Prisma
+prisma.$queryRawUnsafe("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 10000;").catch(() => {});
+

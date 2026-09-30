@@ -18,7 +18,7 @@ const DEFAULT_ACCOUNTS: Record<string, {
     pass: "admin123",
     rol: "ADMIN",
     cuit: "20111111112",
-    permissions: ["VENTAS", "CLIENTES", "FACTURACION", "COBRANZAS", "OPERATIVA", "ENVIOS", "STOCK", "LABORATORIO", "BOT", "ADMIN"]
+    permissions: ["VENTAS", "VENTAS_GENERALES", "TIENDA", "MERCADO_LIBRE", "CLIENTES", "FACTURACION", "COBRANZAS", "COMPRAS", "ORDEN_COMPRA", "OC_EXTERIOR", "OPERATIVA", "ENVIOS", "STOCK", "LABORATORIO", "BOT", "ESTADO_PEDIDOS", "ADMIN"]
   },
   "ventas@systemfactory.com": {
     nombre: "Ejecutivo Ventas",
@@ -122,7 +122,7 @@ export async function loginAction(prevState: any, formData: FormData) {
       const cookieStore = await cookies();
       cookieStore.set("sessionToken", sessionString, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: false,
         maxAge: 60 * 60 * 24 * 7, // 1 semana
         path: "/"
       });

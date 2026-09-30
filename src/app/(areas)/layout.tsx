@@ -44,15 +44,9 @@ export default async function AreasLayout({ children }: { children: React.ReactN
         
         // Si no es ADMIN y tiene restricciones explícitas de países asignados
         if (liveUser.rol !== "ADMIN" && allowedCountries.length > 0) {
-          // Si el país seleccionado no está en la lista autorizada, corregir automáticamente al primer país permitido
+          // Si el país seleccionado no está en la lista autorizada, corregir en la vista al primer país permitido
           if (!selectedCountry || !allowedCountries.includes(selectedCountry)) {
             selectedCountry = allowedCountries[0];
-            cookieStore.set("selectedCountry", selectedCountry, {
-              httpOnly: false,
-              secure: process.env.NODE_ENV === "production",
-              maxAge: 60 * 60 * 24 * 365,
-              path: "/"
-            });
           }
         }
       }

@@ -50,7 +50,7 @@ export default function ActivityLogSection({
   };
 
   return (
-    <div className="bg-bg-card rounded-xl shadow-lg border border-border-custom p-6 max-w-7xl mx-auto mt-8">
+    <div className="bg-bg-card rounded-xl shadow-lg border border-border-custom p-6 w-full mt-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-border-custom pb-4">
         <div>
           <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">

@@ -193,7 +193,7 @@ export default function OcExteriorPage() {
   const selectedOrder = orders.find(o => o.id === selectedOrderId);
 
   return (
-    <div className="max-w-6xl mx-auto pb-12">
+    <div className="w-full pb-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-text-primary tracking-wide flex items-center gap-3 mb-2">

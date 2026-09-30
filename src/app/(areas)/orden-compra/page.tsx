@@ -111,7 +111,7 @@ export default function OrdenCompraPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-12">
+    <div className="w-full pb-12">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-text-primary tracking-wide flex items-center gap-3">
           <FileCheck className="text-[#0078D7] w-8 h-8" />

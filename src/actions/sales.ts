@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { addToRecycleBin } from "@/actions/recycleBin";
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -229,6 +230,12 @@ export async function getSales() {
             createdAt: "desc",
           },
         },
+        shipping: true,
+        invoices: {
+          include: {
+            payments: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -373,12 +380,28 @@ export async function deleteSale(saleId: string) {
     }
 
     const sale = await prisma.sale.findUnique({
-      where: { id: saleId }
+      where: { id: saleId },
+      include: {
+        details: true,
+        client: true,
+        vendedor: true,
+        invoices: true,
+        shipping: true,
+        observations: true,
+      }
     });
 
     if (!sale) {
       return { success: false, error: "Venta no encontrada." };
     }
+
+    await addToRecycleBin({
+      entityType: "SALE",
+      entityId: sale.id,
+      title: `Venta: Orden ${sale.numeroOrden}`,
+      subtitle: `Cliente: ${sale.client?.razonSocial || "N/A"} | Total: $${sale.total.toLocaleString("es-AR")} ${sale.moneda}`,
+      payload: sale,
+    });
 
     await prisma.$transaction(async (tx) => {
       // 1. Obtener facturas asociadas

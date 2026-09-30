@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Package, Truck, Search, CheckCircle, ChevronRight, X, MapPin, CheckSquare, Square, ClipboardCheck, Eye, Navigation, Compass, ShieldAlert, Award, Trash2, Boxes, Plus, Minus } from "lucide-react";
+import { Package, Truck, Search, CheckCircle, ChevronRight, X, MapPin, CheckSquare, Square, ClipboardCheck, Eye, Navigation, Compass, ShieldAlert, Award, Trash2, Boxes, Plus, Minus, Edit2, Pencil } from "lucide-react";
 import { getShippings, updateShipping, deleteShipping } from "@/actions/logistics";
 import { getCurrentUserSession } from "@/actions/users";
 import { getProducts } from "@/actions/products";
@@ -124,6 +124,8 @@ export default function EnviosDashboard() {
   const [isPackModalOpen, setIsPackModalOpen] = useState(false);
   const [isShipModalOpen, setIsShipModalOpen] = useState(false);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [isEditTrackingModalOpen, setIsEditTrackingModalOpen] = useState(false);
+  const [formEditTracking, setFormEditTracking] = useState({ logistica: "", tracking: "" });
   const [envioSeleccionado, setEnvioSeleccionado] = useState<any>(null);
   const [shippings, setShippings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -261,6 +263,52 @@ export default function EnviosDashboard() {
     setIsTrackingModalOpen(true);
   };
 
+  // Abrir Modal para editar número de seguimiento (Tracking)
+  const abrirModalEditarTracking = (envio: any) => {
+    setEnvioSeleccionado(envio);
+    setFormEditTracking({
+      logistica: envio.logistica || "Correo Argentino",
+      tracking: envio.tracking || ""
+    });
+    setIsEditTrackingModalOpen(true);
+  };
+
+  const handleGuardarTracking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!envioSeleccionado) return;
+    if (!formEditTracking.tracking.trim()) {
+      alert("Por favor ingrese un número de seguimiento válido.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await updateShipping({
+        id: envioSeleccionado.id,
+        estado: envioSeleccionado.estado,
+        logistica: formEditTracking.logistica,
+        tracking: formEditTracking.tracking.trim()
+      });
+
+      if (res.success) {
+        alert("Número de seguimiento actualizado con éxito.");
+        setIsEditTrackingModalOpen(false);
+        setEnvioSeleccionado((prev: any) => prev ? {
+          ...prev,
+          logistica: formEditTracking.logistica,
+          tracking: formEditTracking.tracking.trim()
+        } : null);
+        loadData();
+      } else {
+        alert("Error al actualizar tracking: " + res.error);
+      }
+    } catch (err: any) {
+      alert("Error al procesar la solicitud: " + (err?.message || "Ocurrió un error inesperado al actualizar el tracking."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const toggleChecklist = (index: number) => {
     const newChecklist = [...formDespacho.checklist];
     newChecklist[index] = !newChecklist[index];
@@ -390,7 +438,7 @@ export default function EnviosDashboard() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-12">
+    <div className="w-full pb-12">
       <div className="flex justify-between items-end mb-8">
         <div>
           <h1 className="text-3xl font-bold text-text-primary tracking-wide flex items-center gap-3 mb-2">
@@ -570,7 +618,17 @@ export default function EnviosDashboard() {
                         <h3 className="text-lg font-bold text-text-primary tracking-wide">{envio.sale?.client?.razonSocial || "Cliente Desconocido"}</h3>
                         <span className="text-xs bg-bg-subtle text-text-muted px-2 py-0.5 rounded font-mono border border-border-custom">{envio.sale?.numeroOrden || "ORD-???"}</span>
                       </div>
-                      <p className="text-xs text-text-muted">Transporte: <strong className="text-text-secondary">{envio.logistica}</strong> | Tracking: <strong className="text-text-secondary">{envio.tracking}</strong></p>
+                      <p className="text-xs text-text-muted flex items-center gap-1.5 flex-wrap">
+                        Transporte: <strong className="text-text-secondary">{envio.logistica}</strong> | Tracking: <strong className="text-text-secondary font-mono">{envio.tracking}</strong>
+                        <button
+                          type="button"
+                          onClick={() => abrirModalEditarTracking(envio)}
+                          title="Editar número de seguimiento / transporte"
+                          className="inline-flex items-center gap-1 text-[11px] text-[#0078D7] hover:underline font-semibold ml-1 cursor-pointer bg-[#0078D7]/10 hover:bg-[#0078D7]/20 px-2 py-0.5 rounded border border-[#0078D7]/30 transition-colors"
+                        >
+                          <Edit2 className="w-3 h-3" /> Editar
+                        </button>
+                      </p>
                       <p className="text-xs text-text-muted flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5" /> Destino: <span className="text-text-secondary truncate">{envio.sale?.client?.direccion || "No especificada"}</span>
                       </p>
@@ -600,6 +658,13 @@ export default function EnviosDashboard() {
                     >
                       <Navigation className="w-3.5 h-3.5" />
                       Seguimiento en Vivo
+                    </button>
+                    <button
+                      onClick={() => abrirModalEditarTracking(envio)}
+                      className="p-2 bg-bg-card hover:bg-bg-subtle text-text-secondary hover:text-[#0078D7] rounded-md transition-colors border border-border-custom hover:border-[#0078D7]/40 cursor-pointer h-[34px] flex items-center justify-center sm:self-end"
+                      title="Editar Número de Seguimiento (Tracking)"
+                    >
+                      <Edit2 className="w-4 h-4" />
                     </button>
                     {session?.rol === "ADMIN" && (
                       <button
@@ -1024,7 +1089,20 @@ export default function EnviosDashboard() {
                 </div>
                 <div>
                   <span className="block text-text-muted font-bold uppercase tracking-wider mb-0.5">Código Referencia</span>
-                  <strong className="text-sm text-purple-500 font-mono tracking-wider">{envioSeleccionado.tracking}</strong>
+                  <div className="flex items-center gap-2">
+                    <strong className="text-sm text-purple-500 font-mono tracking-wider">{envioSeleccionado.tracking}</strong>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsTrackingModalOpen(false);
+                        abrirModalEditarTracking(envioSeleccionado);
+                      }}
+                      className="text-xs text-[#0078D7] hover:underline font-bold flex items-center gap-1 cursor-pointer ml-1"
+                      title="Corregir código tipeado"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" /> Corregir
+                    </button>
+                  </div>
                 </div>
                 <div className="col-span-2 border-t border-border-custom/50 pt-2 mt-1">
                   <span className="block text-text-muted font-bold uppercase tracking-wider mb-0.5">Destino Final de Entrega</span>
@@ -1114,6 +1192,94 @@ export default function EnviosDashboard() {
               </div>
 
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 4: Editar Código de Seguimiento (Tracking) / Empresa */}
+      {isEditTrackingModalOpen && envioSeleccionado && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-card border border-border-custom rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-border-custom bg-bg-subtle">
+              <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-[#0078D7]" />
+                Editar Código de Seguimiento
+              </h2>
+              <button
+                onClick={() => setIsEditTrackingModalOpen(false)}
+                className="text-text-muted hover:text-text-primary transition-colors flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleGuardarTracking} className="p-6 space-y-4 text-left">
+              <div className="bg-bg-subtle p-3 rounded-lg border border-border-custom/60 text-xs mb-2">
+                <p className="text-text-muted font-medium">
+                  Cliente: <strong className="text-text-primary">{envioSeleccionado.sale?.client?.razonSocial || "N/A"}</strong>
+                </p>
+                <p className="text-text-muted font-medium">
+                  Orden: <strong className="text-text-primary">{envioSeleccionado.sale?.numeroOrden || "ORD-???"}</strong>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                  Empresa / Transportista *
+                </label>
+                <select
+                  value={formEditTracking.logistica}
+                  onChange={(e) => setFormEditTracking({ ...formEditTracking, logistica: e.target.value })}
+                  className="w-full bg-bg-subtle border border-border-custom rounded-lg px-4 py-2.5 text-sm text-text-primary focus:border-[#0078D7] outline-none cursor-pointer"
+                >
+                  <option value="Correo Argentino">Correo Argentino</option>
+                  <option value="Andreani">Andreani</option>
+                  <option value="OCA">OCA</option>
+                  <option value="Vía Bariloche">Vía Bariloche</option>
+                  <option value="Expreso Cargo">Expreso Cargo</option>
+                  <option value="Credifin">Credifin Express</option>
+                  <option value="Ancora Logistics">Ancora Logistics</option>
+                  <option value="Retiro en Sucursal / Local">Retiro en Sucursal / Local</option>
+                  <option value="Otro / Flete Propio">Otro / Flete Propio</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                  Número de Seguimiento (Tracking) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formEditTracking.tracking}
+                  onChange={(e) => setFormEditTracking({ ...formEditTracking, tracking: e.target.value })}
+                  placeholder="Ej: 161816TH..."
+                  className="w-full bg-bg-subtle border border-border-custom rounded-lg px-4 py-2.5 text-sm font-mono text-text-primary focus:border-[#0078D7] outline-none"
+                />
+                <p className="text-[11px] text-text-muted mt-1">
+                  Si el operador cometió un error de tipeo al despachar, puede corregir el código o la empresa seleccionada aquí.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-border-custom">
+                <button
+                  type="button"
+                  onClick={() => setIsEditTrackingModalOpen(false)}
+                  className="px-4 py-2 rounded-lg text-text-secondary hover:bg-bg-subtle border border-border-custom text-xs font-bold cursor-pointer"
+                  disabled={loading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="bg-[#0078D7] hover:bg-[#005a9e] text-white px-5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+                  disabled={loading}
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  {loading ? "Guardando..." : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import { 
   Search, 
   ShoppingBag, 
@@ -10,7 +10,8 @@ import {
   ChevronRight, 
   X, 
   ClipboardList,
-  Trash2
+  Trash2,
+  Calendar
 } from "lucide-react";
 import { getSales, updateSaleGeneralInfo, createSaleObservation, deleteSale } from "@/actions/sales";
 import { getCurrentUserSession } from "@/actions/users";
@@ -21,6 +22,7 @@ export default function VentasGeneralesPage() {
   const [entregaFiltro, setEntregaFiltro] = useState("TODOS");
   const [estadoFiltro, setEstadoFiltro] = useState("TODOS");
   const [demoraFiltro, setDemoraFiltro] = useState("TODAS");
+  const [mesFiltro, setMesFiltro] = useState("TODOS");
 
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,6 +156,23 @@ export default function VentasGeneralesPage() {
     }
   };
 
+  // Meses disponibles para filtrar (Año-Mes)
+  const availableMonths = Array.from(
+    new Set(
+      sales.map((s) => {
+        const d = new Date(s.createdAt);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      })
+    )
+  ).sort((a, b) => b.localeCompare(a));
+
+  const formatMonthYearKey = (key: string) => {
+    if (!key) return "";
+    const [y, m] = key.split("-");
+    const date = new Date(Number(y), Number(m) - 1, 1);
+    return date.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+  };
+
   // Filtering Logic
   const filteredSales = sales.filter(s => {
     const elapsedDays = getElapsedDays(s.createdAt);
@@ -178,11 +197,24 @@ export default function VentasGeneralesPage() {
       matchesDemora = s.estado === "ENTREGADO";
     }
 
-    return matchesSearch && matchesCanal && matchesEntrega && matchesEstado && matchesDemora;
+    const d = new Date(s.createdAt);
+    const saleMonthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const matchesMes = mesFiltro === "TODOS" || saleMonthKey === mesFiltro;
+
+    return matchesSearch && matchesCanal && matchesEntrega && matchesEstado && matchesDemora && matchesMes;
   });
 
+  // Agrupar ventas filtradas por Mes (Año-Mes)
+  const salesGroupedByMonth = filteredSales.reduce((acc: Record<string, any[]>, sale) => {
+    const d = new Date(sale.createdAt);
+    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!acc[monthKey]) acc[monthKey] = [];
+    acc[monthKey].push(sale);
+    return acc;
+  }, {});
+
   return (
-    <div className="max-w-7xl mx-auto pb-12">
+    <div className="w-full pb-12 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-end mb-8 flex-wrap gap-4">
         <div>
@@ -217,7 +249,26 @@ export default function VentasGeneralesPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 shrink-0">
+            {/* Mes / Período */}
+            <div className="flex flex-col">
+              <label className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1 flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-[#0078D7]" /> Mes / Período
+              </label>
+              <select
+                value={mesFiltro}
+                onChange={(e) => setMesFiltro(e.target.value)}
+                className="bg-bg-sidebar border border-border-custom rounded px-3 py-2 text-xs text-text-primary focus:border-[#0078D7] outline-none font-medium capitalize cursor-pointer"
+              >
+                <option value="TODOS">Todos los Meses</option>
+                {availableMonths.map((mKey) => (
+                  <option key={mKey} value={mKey} className="capitalize">
+                    {formatMonthYearKey(mKey)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Canal */}
             <div className="flex flex-col">
               <label className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Canal de Venta</label>
@@ -285,138 +336,157 @@ export default function VentasGeneralesPage() {
       </div>
 
       {/* Ventas Table */}
-      <div className="bg-bg-card border border-border-custom rounded-xl shadow-xl overflow-hidden">
+      <div className="bg-bg-card border border-border-custom rounded-2xl shadow-2xl overflow-hidden">
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-12 text-center text-text-muted">Cargando ventas generales...</div>
+            <div className="p-16 text-center text-text-muted text-base font-medium">Cargando ventas generales...</div>
           ) : filteredSales.length === 0 ? (
-            <div className="p-12 text-center text-text-muted">No se encontraron ventas cargadas en el sistema.</div>
+            <div className="p-16 text-center text-text-muted text-base font-medium">No se encontraron ventas cargadas en el sistema.</div>
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-bg-subtle border-b border-border-custom text-xs uppercase tracking-wider text-text-muted font-bold">
-                  <th className="p-4 pl-6">Alerta</th>
-                  <th className="p-4">Cliente</th>
-                  <th className="p-4">Fecha Compra</th>
-                  <th className="p-4">Productos</th>
-                  <th className="p-4 text-center">Punto de Venta</th>
-                  <th className="p-4 text-center">Entrega</th>
-                  <th className="p-4 text-center">Nro Pedido</th>
-                  <th className="p-4 text-center">Estado</th>
-                  <th className="p-4 text-center">Acciones</th>
+                <tr className="bg-bg-subtle/80 border-b border-border-custom text-xs uppercase tracking-widest text-text-primary font-black">
+                  <th className="py-5 px-6 pl-8 text-center whitespace-nowrap">Alerta</th>
+                  <th className="py-5 px-6 whitespace-nowrap">Cliente</th>
+                  <th className="py-5 px-6 whitespace-nowrap">Fecha Compra</th>
+                  <th className="py-5 px-6">Productos</th>
+                  <th className="py-5 px-6 text-center whitespace-nowrap">Punto de Venta</th>
+                  <th className="py-5 px-6 text-center whitespace-nowrap">Entrega</th>
+                  <th className="py-5 px-6 text-center whitespace-nowrap">Nro Pedido</th>
+                  <th className="py-5 px-6 text-center whitespace-nowrap">Estado</th>
+                  <th className="py-5 px-6 text-center whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border-custom text-sm text-text-secondary">
-                {filteredSales.map((sale) => {
-                  const elapsedDays = getElapsedDays(sale.createdAt);
-                  const alertStyle = getAlertColorClasses(elapsedDays, sale.estado);
-
-                  return (
-                    <tr key={sale.id} className={`hover:bg-bg-subtle/40 transition-colors border-l-4 ${alertStyle.cardBorder}`}>
-                      
-                      {/* Alerta */}
-                      <td className="p-4 pl-6">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${alertStyle.badge}`}>
-                          {sale.estado === "ENTREGADO" ? "Completado" : `${elapsedDays} ${elapsedDays === 1 ? 'Día' : 'Días'}`}
-                        </span>
-                      </td>
-
-                      {/* Cliente */}
-                      <td className="p-4 font-semibold text-text-primary">
-                        {sale.client.razonSocial}
-                      </td>
-
-                      {/* Fecha Compra */}
-                      <td className="p-4 font-mono text-xs">
-                        {new Date(sale.createdAt).toLocaleDateString("es-AR")}
-                      </td>
-
-                      {/* Productos */}
-                      <td className="p-4 max-w-[220px]">
-                        <div className="space-y-1">
-                          {sale.details && sale.details.map((d: any, idx: number) => (
-                            <p key={idx} className="text-xs text-text-secondary truncate flex items-center gap-1.5">
-                              <Package className="w-3.5 h-3.5 text-[#0078D7] shrink-0" />
-                              <span className="font-bold text-text-primary">{d.cantidad}x</span> {d.producto.nombre}
-                            </p>
-                          ))}
+              <tbody className="divide-y divide-border-custom/60 text-sm text-text-secondary">
+                {Object.entries(salesGroupedByMonth).map(([monthKey, monthSales]) => (
+                  <React.Fragment key={monthKey}>
+                    {/* Encabezado Separador de Mes */}
+                    <tr className="bg-[#0078D7]/10 border-y border-[#0078D7]/30 text-text-primary">
+                      <td colSpan={9} className="py-3 px-6 font-bold text-xs uppercase tracking-wider text-[#0078D7]">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-2 font-black text-sm capitalize">
+                            <Calendar className="w-4 h-4 text-[#0078D7]" />
+                            {formatMonthYearKey(monthKey)}
+                          </span>
+                          <span className="text-[11px] font-mono text-text-muted bg-bg-card px-3 py-1 rounded-full border border-border-custom font-bold">
+                            {monthSales.length} {monthSales.length === 1 ? "venta registrada" : "ventas registradas"}
+                          </span>
                         </div>
                       </td>
-
-                      {/* Punto de Venta */}
-                      <td className="p-4 text-center">
-                        {sale.puntoVenta === "MERCADO_LIBRE" ? (
-                          <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded font-bold uppercase tracking-wider">Mercado Libre</span>
-                        ) : sale.puntoVenta === "TIENDA" ? (
-                          <span className="text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded font-bold uppercase tracking-wider">Tienda</span>
-                        ) : (
-                          <span className="text-[10px] bg-amber-500/10 text-amber-500 border border-amber-500/30 px-2.5 py-1 rounded font-bold uppercase tracking-wider">Mail</span>
-                        )}
-                      </td>
-
-                      {/* Entrega */}
-                      <td className="p-4 text-center">
-                        {sale.tipoEntrega === "RETIRO" ? (
-                          <span className="text-[10px] bg-rose-500/10 text-rose-500 border border-rose-500/30 px-2.5 py-1 rounded font-bold uppercase tracking-wider">Retiro</span>
-                        ) : (
-                          <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 px-2.5 py-1 rounded font-bold uppercase tracking-wider">Envío</span>
-                        )}
-                      </td>
-
-                      {/* Nro Pedido */}
-                      <td className="p-4 text-center font-mono font-bold text-xs text-text-primary">
-                        {sale.numeroOrden}
-                      </td>
-
-                      {/* Estado */}
-                      <td className="p-4 text-center">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${
-                          sale.estado === "ENTREGADO" ? "bg-indigo-950 text-indigo-400 border-indigo-900/50" :
-                          sale.estado === "ENVIADO" ? "bg-blue-950 text-blue-400 border-blue-900/50" :
-                          sale.estado === "PAGADO" ? "bg-emerald-950 text-emerald-400 border-emerald-900/50" :
-                          "bg-yellow-950 text-yellow-400 border-yellow-900/50"
-                        }`}>
-                          {sale.estado}
-                        </span>
-                      </td>
-
-                      {/* Acciones */}
-                      <td className="p-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => abrirModal(sale)}
-                            className="inline-flex items-center gap-1 bg-[#0078D7]/10 hover:bg-[#0078D7] text-[#0078D7] hover:text-white px-3 py-1.5 rounded transition-all border border-[#0078D7]/30 hover:border-transparent text-xs font-bold cursor-pointer"
-                          >
-                            Detalle
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </button>
-                          {session?.rol === "ADMIN" && (
-                            <button
-                              onClick={async () => {
-                                if (confirm(`¿Está seguro de eliminar la venta ${sale.numeroOrden}? Esta acción no se puede deshacer y eliminará de forma permanente todos los cobros, facturas y envíos asociados.`)) {
-                                  setLoading(true);
-                                  const res = await deleteSale(sale.id);
-                                  setLoading(false);
-                                  if (res.success) {
-                                    alert("Venta eliminada con éxito.");
-                                    loadData();
-                                  } else {
-                                    alert("Error: " + res.error);
-                                  }
-                                }
-                              }}
-                              className="inline-flex items-center justify-center p-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded transition-all border border-red-500/30 hover:border-transparent cursor-pointer"
-                              title="Eliminar venta"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-
                     </tr>
-                  );
-                })}
+
+                    {/* Ventas del mes */}
+                    {monthSales.map((sale) => {
+                      const elapsedDays = getElapsedDays(sale.createdAt);
+                      const alertStyle = getAlertColorClasses(elapsedDays, sale.estado);
+
+                      return (
+                        <tr key={sale.id} className={`hover:bg-bg-subtle/60 transition-all duration-200 border-l-4 ${alertStyle.cardBorder}`}>
+                          {/* Alerta */}
+                          <td className="py-5 px-6 pl-8 text-center whitespace-nowrap">
+                            <span className={`inline-flex items-center justify-center whitespace-nowrap text-xs font-black px-3.5 py-1.5 rounded-lg border uppercase tracking-wider shadow-sm min-w-[85px] ${alertStyle.badge}`}>
+                              {sale.estado === "ENTREGADO" ? "Completado" : `${elapsedDays} ${elapsedDays === 1 ? 'DÍA' : 'DÍAS'}`}
+                            </span>
+                          </td>
+
+                          {/* Cliente */}
+                          <td className="py-5 px-6 font-bold text-base text-text-primary tracking-tight whitespace-nowrap min-w-[160px]">
+                            {sale.client.razonSocial}
+                          </td>
+
+                          {/* Fecha Compra */}
+                          <td className="py-5 px-6 font-mono text-sm font-medium text-text-secondary whitespace-nowrap">
+                            {new Date(sale.createdAt).toLocaleDateString("es-AR")}
+                          </td>
+
+                          {/* Productos */}
+                          <td className="py-5 px-6 max-w-[360px] min-w-[240px]">
+                            <div className="space-y-1.5">
+                              {sale.details && sale.details.map((d: any, idx: number) => (
+                                <p key={idx} className="text-sm text-text-secondary truncate flex items-center gap-2">
+                                  <Package className="w-4 h-4 text-[#0078D7] shrink-0" />
+                                  <span className="font-extrabold text-text-primary text-sm">{d.cantidad}x</span> {d.producto.nombre}
+                                </p>
+                              ))}
+                            </div>
+                          </td>
+
+                          {/* Punto de Venta */}
+                          <td className="py-5 px-6 text-center whitespace-nowrap">
+                            {sale.puntoVenta === "MERCADO_LIBRE" ? (
+                              <span className="inline-flex items-center justify-center whitespace-nowrap text-xs bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider shadow-sm min-w-[110px]">Mercado Libre</span>
+                            ) : sale.puntoVenta === "TIENDA" ? (
+                              <span className="inline-flex items-center justify-center whitespace-nowrap text-xs bg-purple-500/10 text-purple-400 border border-purple-500/30 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider shadow-sm min-w-[110px]">Tienda</span>
+                            ) : (
+                              <span className="inline-flex items-center justify-center whitespace-nowrap text-xs bg-amber-500/10 text-amber-500 border border-amber-500/30 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider shadow-sm min-w-[110px]">Mail</span>
+                            )}
+                          </td>
+
+                          {/* Entrega */}
+                          <td className="py-5 px-6 text-center whitespace-nowrap">
+                            {sale.tipoEntrega === "RETIRO" ? (
+                              <span className="inline-flex items-center justify-center whitespace-nowrap text-xs bg-rose-500/10 text-rose-500 border border-rose-500/30 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider shadow-sm min-w-[85px]">Retiro</span>
+                            ) : (
+                              <span className="inline-flex items-center justify-center whitespace-nowrap text-xs bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider shadow-sm min-w-[85px]">Envío</span>
+                            )}
+                          </td>
+
+                          {/* Nro Pedido */}
+                          <td className="py-5 px-6 text-center font-mono font-black text-sm text-text-primary whitespace-nowrap">
+                            {sale.numeroOrden}
+                          </td>
+
+                          {/* Estado */}
+                          <td className="py-5 px-6 text-center whitespace-nowrap">
+                            <span className={`inline-flex items-center justify-center whitespace-nowrap text-xs font-black px-3.5 py-1.5 rounded-lg border uppercase tracking-wider shadow-sm min-w-[100px] ${
+                              sale.estado === "ENTREGADO" ? "bg-indigo-950 text-indigo-400 border-indigo-900/50" :
+                              sale.estado === "ENVIADO" ? "bg-blue-950 text-blue-400 border-blue-900/50" :
+                              sale.estado === "PAGADO" ? "bg-emerald-950 text-emerald-400 border-emerald-900/50" :
+                              "bg-yellow-950 text-yellow-400 border-yellow-900/50"
+                            }`}>
+                              {sale.estado}
+                            </span>
+                          </td>
+
+                          {/* Acciones */}
+                          <td className="py-5 px-6 text-center whitespace-nowrap">
+                            <div className="flex items-center justify-center gap-2.5">
+                              <button
+                                onClick={() => abrirModal(sale)}
+                                className="inline-flex items-center gap-1.5 bg-[#0078D7]/10 hover:bg-[#0078D7] text-[#0078D7] hover:text-white px-3.5 py-2 rounded-lg transition-all border border-[#0078D7]/30 hover:border-transparent text-xs font-bold cursor-pointer shadow-sm"
+                              >
+                                Detalle
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                              {session?.rol === "ADMIN" && (
+                                <button
+                                  onClick={async () => {
+                                    if (confirm(`¿Está seguro de eliminar la venta ${sale.numeroOrden}? Esta acción no se puede deshacer y eliminará de forma permanente todos los cobros, facturas y envíos asociados.`)) {
+                                      setLoading(true);
+                                      const res = await deleteSale(sale.id);
+                                      setLoading(false);
+                                      if (res.success) {
+                                        alert("Venta eliminada con éxito.");
+                                        loadData();
+                                      } else {
+                                        alert("Error: " + res.error);
+                                      }
+                                    }
+                                  }}
+                                  className="inline-flex items-center justify-center p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg transition-all border border-red-500/30 hover:border-transparent cursor-pointer shadow-sm"
+                                  title="Eliminar venta"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
               </tbody>
             </table>
           )}

@@ -129,7 +129,7 @@ export default function NuevaVenta() {
     descuento: 0,
     autorizaDescuento: "",
     observaciones: "",
-    tipoFactura: "A",
+    tipoFactura: "Consumidor Final",
     moneda: "ARS",
   });
 
@@ -482,9 +482,13 @@ export default function NuevaVenta() {
                   <input
                     type="number"
                     min="0"
-                    value={art.precio}
-                    onChange={e => updateArticulo(art.id, { precio: Number(e.target.value) })}
+                    value={art.precio === 0 ? "" : art.precio}
+                    onChange={e => {
+                      const raw = e.target.value.replace(/^0+(?=\d)/, "");
+                      updateArticulo(art.id, { precio: raw === "" ? 0 : Number(raw) });
+                    }}
                     onFocus={e => e.target.select()}
+                    placeholder="0"
                     className="w-full bg-bg-card border border-border-custom rounded-md px-3 py-2 text-text-primary focus:border-[#0078D7] outline-none"
                   />
                 </div>
@@ -529,11 +533,14 @@ export default function NuevaVenta() {
                 <input
                   type="number"
                   min="0"
-                  value={formData.costoEnvio}
-                  onChange={e => setFormData({...formData, costoEnvio: Number(e.target.value)})}
+                  value={formData.costoEnvio === 0 ? "" : formData.costoEnvio}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/^0+(?=\d)/, "");
+                    setFormData({...formData, costoEnvio: raw === "" ? 0 : Number(raw)});
+                  }}
                   onFocus={e => e.target.select()}
+                  placeholder="0"
                   className="w-full bg-bg-subtle border border-border-custom rounded-md px-4 py-3 text-text-primary focus:border-[#0078D7] outline-none"
-                  required
                 />
               </div>
             )}
@@ -542,8 +549,13 @@ export default function NuevaVenta() {
               <input
                 type="number"
                 min="0"
-                value={formData.descuento}
-                onChange={e => setFormData({...formData, descuento: Number(e.target.value)})}
+                value={formData.descuento === 0 ? "" : formData.descuento}
+                onChange={e => {
+                  const raw = e.target.value.replace(/^0+(?=\d)/, "");
+                  setFormData({...formData, descuento: raw === "" ? 0 : Number(raw)});
+                }}
+                onFocus={e => e.target.select()}
+                placeholder="0"
                 className="w-full bg-bg-subtle border border-border-custom rounded-md px-4 py-3 text-text-primary focus:border-[#0078D7] outline-none"
               />
             </div>
@@ -558,16 +570,17 @@ export default function NuevaVenta() {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Tipo de Factura</label>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Tipo de Cliente</label>
               <select
                 value={formData.tipoFactura}
                 onChange={e => setFormData({...formData, tipoFactura: e.target.value})}
-                className="w-full bg-bg-subtle border border-border-custom rounded-md px-4 py-3 text-text-primary focus:border-[#0078D7] transition-colors outline-none appearance-none"
+                className="w-full bg-bg-subtle border border-border-custom rounded-md px-4 py-3 text-text-primary focus:border-[#0078D7] transition-colors outline-none appearance-none cursor-pointer"
               >
-                <option value="A" className="bg-bg-card text-text-primary">Factura A</option>
-                <option value="B" className="bg-bg-card text-text-primary">Factura B</option>
-                <option value="C" className="bg-bg-card text-text-primary">Factura C</option>
-                <option value="X" className="bg-bg-card text-text-primary">Remito (X)</option>
+                <option value="Consumidor Final" className="bg-bg-card text-text-primary">Consumidor Final</option>
+                <option value="Empresa" className="bg-bg-card text-text-primary">Empresa</option>
+                <option value="Gobierno" className="bg-bg-card text-text-primary">Gobierno</option>
+                <option value="Exportacion" className="bg-bg-card text-text-primary">Exportacion</option>
+                <option value="Otros" className="bg-bg-card text-text-primary">Otros</option>
               </select>
             </div>
           </div>
@@ -583,8 +596,13 @@ export default function NuevaVenta() {
           </div>
 
           <div className="mt-8 bg-bg-subtle border border-border-custom rounded-lg p-6 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-xl text-text-secondary">
-              Total a Pagar: <span className="text-3xl font-bold text-emerald-500 ml-2">{formData.moneda === "USD" ? "US$" : "$"} {total.toFixed(2)}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 md:gap-4">
+              <div className="text-xl text-text-secondary">
+                Total a Pagar: <span className="text-3xl font-bold text-emerald-500 ml-2">{formData.moneda === "USD" ? "US$" : "$"} {total.toFixed(2)}</span>
+              </div>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-sm w-fit">
+                Precio final sin IMPUESTOS
+              </span>
             </div>
             <button
               type="submit"

@@ -34,7 +34,10 @@ yarn-error.log*
 .env*
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 /public/uploads/
+/scratch/
 
 # vercel
 .vercel

@@ -239,7 +239,7 @@ export default function StockDashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto pb-12">
+    <div className="w-full pb-12">
       <div className="flex justify-between items-end mb-8">
         <div>
           <h1 className="text-3xl font-bold text-text-primary tracking-wide flex items-center gap-3 mb-2">

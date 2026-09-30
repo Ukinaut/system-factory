@@ -144,3 +144,33 @@ El sistema cuenta con un mecanismo de auto-semillero en base de datos. Si al ini
 | `tecnico@systemfactory.com` | `tecnico123` | **TECNICO** | Operativa, Envíos, Laboratorio, Estado de Pedidos |
 | `cobranzas@systemfactory.com` | `cobranzas123` | **COBRANZAS** | Facturación, Cobranzas, Estado de Pedidos |
 | `stock@systemfactory.com` | `stock123` | **STOCK** | Envíos, Stock, Estado de Pedidos |
+
+---
+
+## 6. Infraestructura de Producción, Despliegues y Accesos Remotos
+
+### 6.1. Servidores y Entornos
+* **Servidor de Desarrollo Local:** Windows (`192.168.2.239:2004`) con Next.js Turbopack.
+* **Servidor de Producción Linux:** Ubuntu Server (`192.168.2.175:2004`) administrado vía SSH/SFTP (usuario `ukinauta`).
+* **Gestor de Procesos:** PM2 administrando el proceso `system-factory` (`pm2 start npm --name "system-factory" -- run dev`).
+
+### 6.2. Pipeline de Despliegue Automatizado (SSH/SFTP)
+Se implementó un script de despliegue en Python (`scratch/deploy_to_prod.py`) que realiza las siguientes operaciones en 3 a 5 segundos:
+1. Empaqueta el código fuente local en `.zip` ignorando directorios de dependencias y build (`node_modules`, `.next`, `.git`).
+2. Sube la actualización por SFTP al servidor `/home/ukinauta/system-factory`.
+3. Purga la caché compilada (`.next/cache`) para garantizar que se carguen los últimos cambios.
+4. Reinicia automáticamente la aplicación en PM2 (`pm2 restart system-factory`).
+
+### 6.3. Soluciones de Seguridad y Enrutamiento en Producción
+* **Galletas (Cookies) sobre HTTP:** Se modificó la directiva de cookies a `secure: false` en los Server Actions de país y autenticación (`countries.ts`, `auth.ts`, `users.ts`, `layout.tsx`) para permitir la transmisión de cookies en redes locales sobre HTTP sin HTTPS explícito.
+* **Orígenes Permitidos (`allowedDevOrigins`):** Se configuró `next.config.ts` declarando los orígenes `192.168.2.175`, `192.168.2.239`, `localhost` y dominios remotos en `allowedDevOrigins` y `experimental.serverActions.allowedOrigins` para prevenir bloqueos por CORS en Server Actions.
+* **Convención de Enrutamiento Next.js 16:** Se unificó el control de acceso en [`src/proxy.ts`](file:///c:/Users/Ukina/OneDrive/Escritorio/SYSTEM%20FACTORY/src/proxy.ts) eliminando `middleware.ts` en cumplimiento con las especificaciones de Next.js 16.
+
+### 6.4. Accesos Remotos Configurados
+1. **Cloudflare Tunnel (HTTPS Remoto Cifrado):**
+   * Servicio `cloudflared` ejecutándose en segundo plano en PM2 (`pm2 start cloudflared --name "tunnel"`).
+   * URL de acceso remoto: `https://offline-both-obtaining-televisions.trycloudflare.com`
+2. **DuckDNS (Dominio Fijo `aitue-sistema.duckdns.org`):**
+   * Registrado e instalado script de actualización automática en `/home/ukinauta/duckdns/duck.sh`.
+   * Tarea programada en `crontab` ejecutada cada 5 minutos para sincronizar cambios de IP pública externa.
+

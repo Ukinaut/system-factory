@@ -1,20 +1,23 @@
 import { getUsers, getAuditLogs } from "@/actions/users";
 import { getAllCountriesAdmin } from "@/actions/countries";
 import { getDashboardStats } from "@/actions/dashboard";
+import { getRecycleBinItems } from "@/actions/recycleBin";
 import AdminDashboardClient from "./AdminDashboardClient";
 import ActivityLogSection from "./ActivityLogSection";
 
 export default async function AdminDashboard() {
-  const [usersResult, countriesResult, statsResult, logsResult] = await Promise.all([
+  const [usersResult, countriesResult, statsResult, logsResult, recycleResult] = await Promise.all([
     getUsers(),
     getAllCountriesAdmin(),
     getDashboardStats(),
     getAuditLogs(),
+    getRecycleBinItems(),
   ]);
 
   const initialUsers = usersResult.success ? usersResult.users : [];
   const initialCountries = countriesResult.success ? countriesResult.countries : [];
   const initialLogs = logsResult.success ? logsResult.logs : [];
+  const initialRecycleItems = recycleResult.success ? recycleResult.items : [];
   
   // Estructura por defecto en caso de error o falte información
   const defaultStats = {
@@ -37,6 +40,7 @@ export default async function AdminDashboard() {
         initialUsers={initialUsers as any} 
         initialCountries={initialCountries as any} 
         initialStats={initialStats as any}
+        initialRecycleItems={initialRecycleItems as any}
       />
       
       <ActivityLogSection initialLogs={initialLogs as any} />

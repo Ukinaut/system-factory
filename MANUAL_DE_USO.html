@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Manual de Uso Detallado - Aitue Cominca S.A.</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm 15mm 20mm 15mm;
+            @bottom-right {
+                content: counter(page);
+            }
+        }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            line-height: 1.6;
+            font-size: 13px;
+            padding: 0;
+            margin: 0;
+        }
+        .header-banner {
+            border-bottom: 3px solid #0078D7;
+            padding-bottom: 12px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+        .header-subtitle {
+            font-size: 12px;
+            color: #0078D7;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+        h1 {
+            font-size: 20px;
+            color: #0f172a;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 6px;
+            margin-top: 28px;
+            margin-bottom: 14px;
+            page-break-after: avoid;
+        }
+        h2 {
+            font-size: 16px;
+            color: #0078D7;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 4px;
+            margin-top: 22px;
+            margin-bottom: 10px;
+            page-break-after: avoid;
+        }
+        h3 {
+            font-size: 14px;
+            color: #334155;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            page-break-after: avoid;
+        }
+        h4 {
+            font-size: 13px;
+            color: #475569;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            page-break-after: avoid;
+        }
+        p, li {
+            color: #334155;
+            font-size: 12.5px;
+        }
+        ul, ol {
+            padding-left: 20px;
+            margin-top: 6px;
+            margin-bottom: 10px;
+        }
+        li {
+            margin-bottom: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 12px;
+            page-break-inside: avoid;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: 700;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        code {
+            background-color: #f1f5f9;
+            color: #0078D7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            font-size: 11.5px;
+        }
+        pre {
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: 14px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            page-break-inside: avoid;
+        }
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        blockquote {
+            border-left: 4px solid #0078D7;
+            background-color: #eff6ff;
+            margin: 14px 0;
+            padding: 10px 16px;
+            color: #1e40af;
+            border-radius: 0 6px 6px 0;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: #e2e8f0;
+            margin: 20px 0;
+        }
+        .footer-note {
+            margin-top: 40px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-banner">
+        <div>
+            <div class="header-title">Aitue Cominca S.A.</div>
+            <div class="header-subtitle">Sistema de Gestión Integrado — Manual de Uso Oficial</div>
+        </div>
+    </div>
+    
+    <h1 id="manual-de-uso-detallado-del-sistema-de-gestion-integrado">Manual de Uso Detallado del Sistema de Gestión Integrado</h1>
+<h2 id="aitue-cominca-sa-telecomunicaciones-satelitales-y-logistica-corporativa">Aitue Cominca S.A. — Telecomunicaciones Satelitales y Logística Corporativa</h2>
+<hr />
+<h2 id="1-introduccion-y-vision-general-del-sistema">1. Introducción y Visión General del Sistema</h2>
+<p>El <strong>Sistema de Gestión Integrado de Aitue Cominca S.A.</strong> es una plataforma web integral diseñada para centralizar, automatizar y auditar todas las operaciones comerciales, financieras, logísticas, de inventario y de soporte técnico satelital de la empresa.</p>
+<h3 id="11-objetivos-del-sistema">1.1. Objetivos del Sistema</h3>
+<ul>
+<li><strong>Trazabilidad 360°:</strong> Control unificado desde que se cotiza un kit o servicio satelital hasta su cobranza, despacho, activación en campo y soporte postventa.</li>
+<li><strong>Monitoreo Satelital en Tiempo Real:</strong> Gestión de equipos Starlink y Amazon LEO, control de anchos de banda, consumos de datos en Gigabytes e interrupción remota de conectividad.</li>
+<li><strong>Seguridad y Control por Roles (RBAC):</strong> Restricción de pantallas y acciones según la función del usuario y permisos otorgados por la administración.</li>
+<li><strong>Multirregión / Selección de País:</strong> Operación adaptada a filiales regionales con productos, comprobantes y divisas independientes (ARS, USD, etc.).</li>
+</ul>
+<hr />
+<h2 id="2-acceso-al-sistema-autenticacion-y-configuracion-regional">2. Acceso al Sistema, Autenticación y Configuración Regional</h2>
+<h3 id="21-inicio-de-sesion-login">2.1. Inicio de Sesión (Login)</h3>
+<ol>
+<li>Ingrese a la dirección del sistema en su navegador web (Servidor Local: <code>http://localhost:2004</code>).</li>
+<li>En la pantalla de inicio de sesión (<code>/login</code>):</li>
+<li>Ingrese su <strong>Correo Electrónico</strong> o <strong>CUIT/DNI</strong>.</li>
+<li>Ingrese su <strong>Contraseña</strong>.</li>
+<li>Haga clic en el botón <strong>Ingresar al Sistema</strong>.</li>
+</ol>
+<blockquote>
+<p>[!NOTE]<br />
+La sesión permanece activa mediante cookies cifradas seguras. Si permanece inactivo o cierra sesión manualmente desde la barra lateral, deberá ingresar sus credenciales nuevamente.</p>
+</blockquote>
+<h3 id="22-cuentas-de-acceso-predefinidas-para-pruebas-y-operacion-inicial">2.2. Cuentas de Acceso Predefinidas (Para Pruebas y Operación Inicial)</h3>
+<p>El sistema incluye un mecanismo de semillero automático. Al ingresar con las siguientes credenciales, el usuario se crea automáticamente con sus accesos preconfigurados:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Rol</th>
+<th style="text-align: left;">Correo Electrónico</th>
+<th style="text-align: left;">Contraseña</th>
+<th style="text-align: left;">Permisos de Módulo Asignados</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Administrador</strong></td>
+<td style="text-align: left;"><code>admin@systemfactory.com</code></td>
+<td style="text-align: left;"><code>admin123</code></td>
+<td style="text-align: left;">Acceso Total a todos los módulos (A al K)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ejecutivo de Ventas</strong></td>
+<td style="text-align: left;"><code>ventas@systemfactory.com</code></td>
+<td style="text-align: left;"><code>ventas123</code></td>
+<td style="text-align: left;">Ventas, Ventas Generales, Mercado Libre, Clientes, Facturación, Compras, Estado de Pedidos</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Técnico / Operativo</strong></td>
+<td style="text-align: left;"><code>tecnico@systemfactory.com</code></td>
+<td style="text-align: left;"><code>tecnico123</code></td>
+<td style="text-align: left;">Operativa, Envíos, Laboratorio RMA, Estado de Pedidos</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Cobranzas y Finanzas</strong></td>
+<td style="text-align: left;"><code>cobranzas@systemfactory.com</code></td>
+<td style="text-align: left;"><code>cobranzas123</code></td>
+<td style="text-align: left;">Facturación, Cobranzas, Ventas Generales, Estado de Pedidos</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Gestión de Stock</strong></td>
+<td style="text-align: left;"><code>stock@systemfactory.com</code></td>
+<td style="text-align: left;"><code>stock123</code></td>
+<td style="text-align: left;">Stock, Envíos, Compras, Orden de Compra, OC Exterior, Estado de Pedidos</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-seleccion-de-pais-filial-regional-select-country">2.3. Selección de País / Filial Regional (<code>/select-country</code>)</h3>
+<p>Al iniciar sesión por primera vez, el sistema solicitará seleccionar la región de trabajo (por ejemplo: <code>Argentina</code>, <code>España</code>, <code>Colombia</code>, etc.):<br />
+* El país seleccionado filtrará el catálogo de stock, comprobantes y divisas aplicables.<br />
+* Puede cambiar de país en cualquier momento haciendo clic en el botón <strong>"Cambiar"</strong> situado debajo de la bandera en la barra lateral izquierda.</p>
+<h3 id="24-personalizacion-visual-modo-oscuro-claro">2.4. Personalización Visual (Modo Oscuro / Claro)</h3>
+<p>En la parte superior de la barra lateral encontrará el botón <strong>ThemeToggle</strong> (icono de Sol/Luna). Presiónelo para alternar entre el tema oscuro premium y el tema claro según su preferencia de visualización.</p>
+<hr />
+<h2 id="3-estructura-de-navegacion-barra-lateral-sidebar">3. Estructura de Navegación (Barra Lateral - Sidebar)</h2>
+<p>La barra lateral izquierda (<code>Sidebar</code>) adapta sus opciones dinámicamente según el rol y los permisos del operador conectado:</p>
+<pre><code>┌────────────────────────────────────────────────────────┐
+│  Aitue Cominca S.A.  [ADMIN]             [Sol/Luna]   │
+├────────────────────────────────────────────────────────┤
+│ 🌐 ARGENTINA                             [Cambiar]    │
+├────────────────────────────────────────────────────────┤
+│  🛡️  Administrador            (/admin)                 │
+│  🛒  Ventas                   (/ventas)                │
+│  🛍️  Ventas Generales         (/ventas-generales)      │
+│  🏪  Mercado Libre            (/mercado-libre)         │
+│  👥  Clientes                 (/clientes)              │
+│  🧾  Facturación              (/facturacion)           │
+│  🏦  Cobranzas                 (/cobranzas)             │
+│  🛍️  Compras                   (/compras)               │
+│  📄  Orden de Compra          (/orden-compra)          │
+│  🌐  OC Exterior              (/oc-exterior)           │
+│  💼  Operativa                (/operativa)             │
+│  🚚  Envíos                   (/envios)                │
+│  📦  Stock                    (/stock)                 │
+│  🧪  Laboratorio              (/laboratorio)           │
+│  🤖  Bot                      (/bot)                   │
+│  📋  Estado Pedidos           (/estado-pedidos)        │
+├────────────────────────────────────────────────────────┤
+│  👤  Juan Pérez (admin@systemfactory.com)               │
+│  [🚪 CERRAR SESIÓN]                                    │
+└────────────────────────────────────────────────────────┘
+</code></pre>
+<hr />
+<h2 id="4-manual-de-uso-detallado-por-modulos">4. Manual de Uso Detallado por Módulos</h2>
+<hr />
+<h3 id="41-modulo-administrador-admin">4.1. Módulo Administrador (<code>/admin</code>)</h3>
+<p>Destinado exclusivamente a personal con rol <code>ADMIN</code> o con permiso explicito de administración.</p>
+<h4 id="a-gestion-de-usuarios-abm-de-personal">A. Gestión de Usuarios (ABM de Personal)</h4>
+<ul>
+<li><strong>Visualización:</strong> Lista todos los operadores del sistema indicando su Nombre, DNI/CUIT, Correo, Teléfono, Rol y Cargo.</li>
+<li><strong>Crear Nuevo Usuario:</strong> </li>
+<li>Haga clic en <strong>"Nuevo Usuario"</strong>.</li>
+<li>Complete Nombre, CUIT/DNI (único), Correo electrónico, Contraseña inicial, Rol (<code>ADMIN</code>, <code>VENTAS</code>, <code>TECNICO</code>, <code>COBRANZAS</code>, <code>STOCK</code>), Teléfono y Cargo.</li>
+<li>Guarde para habilitar el acceso.</li>
+<li><strong>Editar Usuario:</strong> Permite actualizar datos personales, cambiar la contraseña de acceso o modificar el rol asignado.</li>
+<li><strong>Eliminar Usuario:</strong> Elimina el acceso del operador al sistema de forma permanente.</li>
+</ul>
+<h4 id="b-asignacion-granular-de-permisos-por-operador">B. Asignación Granular de Permisos por Operador</h4>
+<p>Permite otorgar excepciones de acceso a módulos específicos sin modificar el rol base del usuario:<br />
+1. En la sección <strong>Permisos Granulares</strong>, seleccione el usuario.<br />
+2. Marque o desmarque los módulos a los que tendrá acceso (ej: dar acceso a <code>/facturacion</code> a un ejecutivo de ventas).<br />
+3. Guarde los cambios. El menú lateral del operador se actualizará en tiempo real.</p>
+<h4 id="c-bitacora-de-auditoria-auditlog">C. Bitácora de Auditoría (<code>AuditLog</code>)</h4>
+<ul>
+<li>Muestra el registro cronológico inalterable de acciones críticas en el sistema: quién realizó la acción, qué operación ejecutó (alta de cliente, modificación de stock, eliminación de venta) y la fecha/hora exacta.</li>
+</ul>
+<hr />
+<h3 id="42-modulo-de-ventas-ventas">4.2. Módulo de Ventas (<code>/ventas</code>)</h3>
+<p>Panel de control para ejecutivos comerciales. Ofrece 5 consolas de acción rápida:</p>
+<h4 id="a-registrar-nuevo-cliente-ventasnuevo-cliente">A. Registrar Nuevo Cliente (<code>/ventas/nuevo-cliente</code>)</h4>
+<ol>
+<li>Ingrese CUIT/DNI, Razón Social, Condición de IVA (Responsable Inscripto, Monotributo, Exento, Consumidor Final).</li>
+<li>Complete Datos de Contacto (Teléfono, Correo principal, Correos adicionales para facturación electrónica).</li>
+<li>Configure la Ubicación (País, Provincia, Localidad, Código Postal, Dirección de Entrega/Fiscal).</li>
+<li>Asigne la <strong>Prioridad Comercial</strong> (<code>ALTA</code>, <code>MEDIA</code>, <code>BAJA</code>) y el <strong>Día del Mes para Facturación</strong>.</li>
+<li>Si corresponde a una sucursal, seleccione el <strong>Cliente Padre</strong> (Sub-nodo).</li>
+</ol>
+<h4 id="b-generar-nueva-venta-ventasnueva-venta">B. Generar Nueva Venta (<code>/ventas/nueva-venta</code>)</h4>
+<p>Formulario inteligente para cargar órdenes de compra formales de clientes:<br />
+1. <strong>Selección de Cliente:</strong> Utilice el buscador con autocompletado por CUIT o Razón Social.<br />
+2. <strong>Desglose de Productos/Servicios:</strong><br />
+   * Seleccione los productos del catálogo. El sistema mostrará en tiempo real el <strong>Stock Disponible</strong>.<br />
+   * Ingrese la cantidad deseada y el precio unitario pactado.<br />
+   * Si el producto es un ensamble, podrá seleccionar componentes incluidos.<br />
+3. <strong>Parámetros Financieros y Logísticos:</strong><br />
+   * Seleccione la Moneda (<code>ARS</code> o <code>USD</code>).<br />
+   * Indique el Punto de Venta (<code>TIENDA</code>, <code>MERCADO_LIBRE</code>, <code>MAIL</code>) y Tipo de Entrega (<code>ENVIO</code> o <code>RETIRO</code>).<br />
+   * Defina el Tipo de Factura requerida (<code>A</code>, <code>B</code>, <code>C</code>, <code>X</code>).<br />
+   * Ingrese Costo de Envío si aplica.<br />
+   * <strong>Descuentos Especiales:</strong> Ingrese el porcentaje de descuento y especifique obligatoriamente el <strong>Nombre del Supervisor que Autoriza</strong>.<br />
+4. Haga clic en <strong>"Confirmar y Generar Venta"</strong>. La orden pasará inmediatamente al módulo de <strong>Facturación</strong> y <strong>Estado de Pedidos</strong>.</p>
+<h4 id="c-venta-rapida-ventasventa-rapida">C. Venta Rápida (<code>/ventas/venta-rapida</code>)</h4>
+<p>Permite registrar una venta ágil ingresando únicamente la Razón Social/Nombre del cliente y los productos, omitiendo requisitos formales de factura inicial para entregas inmediatas de mostrador.</p>
+<h4 id="d-presupuesto-cotizacion-ventaspresupuesto">D. Presupuesto / Cotización (<code>/ventas/presupuesto</code>)</h4>
+<p>Genera una propuesta comercial preliminar. <strong>No afecta el stock físico ni genera deuda financiera</strong> en cobranzas hasta que sea convertida formalmente a venta.</p>
+<h4 id="e-registro-de-reclamos-e-incidentes-ventasreclamo">E. Registro de Reclamos e Incidentes (<code>/ventas/reclamo</code>)</h4>
+<ol>
+<li>Seleccione el Cliente afectado.</li>
+<li>Defina el Tipo de Reclamo (Falla de Hardware, Problema de Ancho de Banda, Error de Facturación, Logística).</li>
+<li>Asigne la Prioridad (<code>URGENTE</code>, <code>MEDIO</code>, <code>LEVE</code>).</li>
+<li>Detalle las observaciones reportadas por el cliente.</li>
+<li>Al guardar, el ticket se deriva automáticamente al <strong>Laboratorio Técnico (RMA)</strong> o área correspondiente.</li>
+</ol>
+<hr />
+<h3 id="43-modulo-ventas-generales-ventas-generales">4.3. Módulo Ventas Generales (<code>/ventas-generales</code>)</h3>
+<p>Consola unificada de control de ventas comerciales:<br />
+* <strong>Filtros Avanzados:</strong> Filtrado multidimensional por rango de fechas, estado de la orden (<code>PENDIENTE</code>, <code>FACTURADO</code>, <code>PAGADO</code>, <code>ENVIADO</code>), vendedor responsable y cliente.<br />
+* <strong>Exportación y Resumen:</strong> Visualización de montos acumulados, totales por divisa y detalle de cada transacción.</p>
+<hr />
+<h3 id="44-modulo-mercado-libre-mercado-libre">4.4. Módulo Mercado Libre (<code>/mercado-libre</code>)</h3>
+<p>Módulo especializado para la gestión e integración de operaciones provenientes del canal de e-commerce Mercado Libre:<br />
+* Visualización de publicaciones, ventas concretadas, preguntas de compradores y estado de despacho sincronizado.</p>
+<hr />
+<h3 id="45-modulo-directorio-de-clientes-clientes-y-clientesid">4.5. Módulo Directorio de Clientes (<code>/clientes</code> y <code>/clientes/[id]</code>)</h3>
+<h4 id="a-vista-principal-clientes">A. Vista Principal (<code>/clientes</code>)</h4>
+<ul>
+<li><strong>Buscador Rápido:</strong> Filtrado instantáneo por CUIT, Razón Social o Provincia.</li>
+<li><strong>Tarjetas de Cliente:</strong> Muestra de forma sintética el estado de la cuenta, cantidad de equipos satelitales instalados en campo y el porcentaje consumido de su pool de datos de Gigabytes.</li>
+</ul>
+<h4 id="b-perfil-expandido-del-cliente-clientesid">B. Perfil Expandido del Cliente (<code>/clientes/[id]</code>)</h4>
+<p>Al hacer clic en un cliente, se accede a su ficha técnica completa:<br />
+1. <strong>Información Fiscal y Comercial:</strong> CUIT, Condición de IVA, dirección y contactos.<br />
+2. <strong>Equipos Satelitales Asignados (<code>EquipoCliente</code>):</strong><br />
+   * Muestra los kits desplegados (Starlink / Amazon LEO), Modelo, Tipo de Movilidad (<code>Fija</code> o <code>Móvil</code>), Número de Serie/MAC, IP asignada, Ubicación geográfica y Coordenadas GPS.<br />
+   * <strong>Consumo de Datos:</strong> Barra de progreso dinámica del consumo de Gigabytes (verde <code>&lt;75%</code>, amarillo <code>75%-90%</code>, rojo <code>&gt;90%</code>).<br />
+3. <strong>Historial de Eventos (<code>ClientEvent</code>):</strong> Cronología de intervenciones, recargas de saldo, reclamos y cambios de plan con opción de adjuntar archivos digitales.<br />
+4. <strong>Exportación a PDF:</strong> Botón para descargar la Ficha Técnica del Cliente en PDF oficial para auditoría o entrega al usuario final.<br />
+5. <strong>Eliminación Segura en Cascada:</strong> Botón reservado para eliminar al cliente y purgar automáticamente todas sus dependencias relacionadas en una sola transacción garantizada, evitando registros huérfanos.</p>
+<hr />
+<h3 id="46-modulo-facturacion-facturacion">4.6. Módulo Facturación (<code>/facturacion</code>)</h3>
+<p>Administrado por el departamento contable y administrativo.</p>
+<h4 id="a-cola-de-ventas-pendientes-de-facturacion">A. Cola de Ventas Pendientes de Facturación</h4>
+<p>Muestra la lista de ventas aprobadas por comercial que aún no tienen comprobante fiscal emitido.</p>
+<h4 id="b-emision-y-carga-de-factura">B. Emisión y Carga de Factura</h4>
+<ol>
+<li>Localice la venta en la cola de trabajo y haga clic en <strong>"Emitir Factura"</strong>.</li>
+<li>Ingrese el <strong>Número de Comprobante Fiscal Oficial</strong> (Ej: <code>FC-A-0001-00008492</code>).</li>
+<li>Adjunte opcionalmente el archivo PDF o imagen de la factura.</li>
+<li>Redacte observaciones para el área de cobranzas si fuera necesario.</li>
+<li>Confirme la carga. El pedido cambiará su estado a <code>FACTURADO</code> y la factura se derivará automáticamente al módulo de <strong>Cobranzas</strong>.</li>
+</ol>
+<hr />
+<h3 id="47-modulo-cobranzas-cobranzas">4.7. Módulo Cobranzas (<code>/cobranzas</code>)</h3>
+<p>Diseñado para el seguimiento de la cartera de créditos y el registro de cobranzas de facturas emitidas.</p>
+<h4 id="a-semaforo-de-vencimiento-de-facturas">A. Semáforo de Vencimiento de Facturas</h4>
+<ul>
+<li><strong>Pestaña Facturas Pendientes:</strong> Muestra las facturas emitidas que aguardan pago.</li>
+<li><strong>Alertas Visuales:</strong> Destaca en tono rojo parpadeante las facturas cuya fecha de vencimiento ha expirado, indicando el número exacto de días de mora.</li>
+</ul>
+<h4 id="b-registrar-cobro-pago">B. Registrar Cobro / Pago</h4>
+<ol>
+<li>Haga clic en <strong>"Registrar Pago"</strong> sobre la factura correspondiente.</li>
+<li>Seleccione el <strong>Método de Pago</strong> (<code>Transferencia Bancaria</code>, <code>Efectivo</code>, <code>Cheque</code>, <code>MercadoPago</code>).</li>
+<li>Ingrese la <strong>Fecha Real de Cobro</strong>.</li>
+<li>Adjunte el <strong>Comprobante Digital</strong> (Foto del ticket, PDF de transferencia bancaria).</li>
+<li>Al confirmar, la factura pasa a la pestaña <strong>"Pagos Completados"</strong> y la orden habilita su despacho inmediato en depósito y logística.</li>
+</ol>
+<hr />
+<h3 id="48-modulos-de-compras-ordenes-de-compra-y-oc-exterior-compras-orden-compra-oc-exterior">4.8. Módulos de Compras, Órdenes de Compra y OC Exterior (<code>/compras</code>, <code>/orden-compra</code>, <code>/oc-exterior</code>)</h3>
+<p>Módulos destinados a la gestión de insumos internos e importaciones internacionales de hardware satelital.</p>
+<h4 id="a-requerimientos-de-compra-interna-compras">A. Requerimientos de Compra Interna (<code>/compras</code>)</h4>
+<ul>
+<li>Los operadores de áreas (Laboratorio, Operativa, Depósito, Oficina) pueden cargar solicitudes de compra especificando: Tipo de Artículo (Consumibles, Repuestos, Equipos), Cantidad, Monto Aprox., Área Destino y Enlace de Referencia.</li>
+<li>Administración revisa, aprueba o rechaza los requerimientos.</li>
+</ul>
+<h4 id="b-ordenes-de-compra-locales-orden-compra">B. Órdenes de Compra Locales (<code>/orden-compra</code>)</h4>
+<ul>
+<li>Consolidación de solicitudes aprobadas en Órdenes de Compra formales a proveedores locales, registrando facturas de compra y pagos a proveedores.</li>
+</ul>
+<h4 id="c-ordenes-de-compra-al-exterior-oc-exterior">C. Órdenes de Compra al Exterior (<code>/oc-exterior</code>)</h4>
+<ul>
+<li><strong>Gestión de Importaciones Satelitales:</strong> Registro de compras internacionales (Starlink, antenas, transceivers) expresadas en divisas extranjeras (USD).</li>
+<li><strong>Seguimiento de Embarque:</strong> Seguimiento de fecha estimada de llegada al país, comprobantes de aduana/importación y panel de <strong>Verificación Físico de Items</strong> para confirmar la entrada exacta de hardware al depósito al momento del arribo.</li>
+</ul>
+<hr />
+<h3 id="49-modulo-operativa-satelital-operativa">4.9. Módulo Operativa Satelital (<code>/operativa</code>)</h3>
+<p>Centro de Control y Monitoreo del Parque Satelital en Campo (Starlink y Amazon LEO).</p>
+<h4 id="a-monitoreo-por-cliente-vista-acordeon">A. Monitoreo por Cliente (Vista Acordeón)</h4>
+<ul>
+<li>Agrupa las terminales activas por cliente.</li>
+<li>Muestra la suma consolidada de datos asignados vs consumidos por la flota de la empresa cliente.</li>
+</ul>
+<h4 id="b-ficha-tecnica-del-nodo-satelital">B. Ficha Técnica del Nodo Satelital</h4>
+<p>Para cada equipo en campo se detalla:<br />
+* <strong>Estado:</strong> <code>Activo</code>, <code>Alerta</code> o <code>Suspendido</code>.<br />
+* <strong>Marca y Proveedor:</strong> Starlink / Amazon LEO — Telespazio / Telefónica / Ale MC.<br />
+* <strong>Identificador de Servicio:</strong> Número de Kit, Número de Serie o MAC Address.<br />
+* <strong>IP y Ubicación:</strong> Dirección IP pública asignada, Coordenadas GPS y dirección física del sitio (Ej: "Yacimiento Vaca Muerta - Pozo 12").</p>
+<h4 id="c-interruptor-remoto-de-conectividad-onoff">C. Interruptor Remoto de Conectividad (ON/OFF)</h4>
+<ul>
+<li>Los técnicos autorizados disponen de un <strong>Switch de Conectividad</strong> en pantalla.</li>
+<li>Al hacer clic, se altera en tiempo real el estado del servicio entre <code>Activo</code> y <code>Suspendido</code>, permitiendo cortar el tráfico ante falta de pago o mantenimiento de red.</li>
+</ul>
+<hr />
+<h3 id="410-modulo-envios-y-logistica-envios">4.10. Módulo Envíos y Logística (<code>/envios</code>)</h3>
+<p>Gestión de depósitos, empaque y despacho físico de equipamiento.</p>
+<h4 id="a-control-de-despachos">A. Control de Despachos</h4>
+<p>Muestra los pedidos comerciales que requieren envío físico de hardware.</p>
+<h4 id="b-procesamiento-del-envio">B. Procesamiento del Envío</h4>
+<ol>
+<li>Al recibir la orden aprobada, el personal de depósito empaqueta el kit satelital o insumo.</li>
+<li>Seleccione la <strong>Empresa de Transportadora / Courier</strong> (<code>Correo Argentino</code>, <code>Andreani</code>, <code>DHL</code>, <code>Flete Propio</code>).</li>
+<li>Ingrese el <strong>Código de Seguimiento (Tracking ID)</strong>.</li>
+<li>Indique la cantidad de cajas/bultos utilizados.</li>
+<li>Actualice el estado logístico:</li>
+<li><code>PARA_EMPACAR</code> ➔ <code>EMPACADO</code> ➔ <code>DESPACHADO</code> ➔ <code>ENTREGADO</code>.</li>
+</ol>
+<hr />
+<h3 id="411-modulo-control-de-stock-e-inventarios-stock">4.11. Módulo Control de Stock e Inventarios (<code>/stock</code>)</h3>
+<p>Administración del catálogo de hardware, insumos y componentes.</p>
+<h4 id="a-clasificacion-de-inventario">A. Clasificación de Inventario</h4>
+<ul>
+<li><strong>PRODUCTO_FINAL:</strong> Terminales completas Starlink, Routers, Parabólicas.</li>
+<li><strong>ENSAMBLE:</strong> Kits armados con soportes y cableado customizado.</li>
+<li><strong>MATERIA_PRIMA / REPUESTOS:</strong> Connectores, cables de alimentación, fuentes, herrajes.</li>
+</ul>
+<h4 id="b-alertas-inteligentes-de-escasez">B. Alertas Inteligentes de Escasez</h4>
+<p>El sistema evalúa dinámicamente el nivel de inventario contra dos umbrales configurados:<br />
+* 🟨 <strong>Alerta Mínima (Amarillo):</strong> El nivel de stock está próximo a agotarse. Se sugiere generar orden de compra.<br />
+* 🟥 <strong>Alerta Crítica (Rojo):</strong> Stock en niveles de ruptura física. Riesgo de detener entregas.</p>
+<h4 id="c-ajuste-manual-de-inventario-entradas-salidas">C. Ajuste Manual de Inventario (Entradas / Salidas)</h4>
+<p>Para registrar ingresos por compra local o bajas por rotura/auditoría:<br />
+1. Haga clic en <strong>"Ajustar Stock"</strong>.<br />
+2. Seleccione el producto y el tipo de movimiento (<code>ENTRADA</code> o <code>SALIDA</code>).<br />
+3. Ingrese la cantidad.<br />
+4. <strong>Motivo Obligatorio:</strong> Redacte la justificación de la modificación (Ej: "Recepción de OC-402" o "Placa dañada en prueba de laboratorio").</p>
+<h4 id="d-libro-diario-de-movimientos">D. Libro Diario de Movimientos</h4>
+<p>Registro inalterable con el historial completo de entradas y salidas de stock, detallando fecha, cantidad, motivo, orden de venta relacionada y usuario que ejecutó la operación.</p>
+<hr />
+<h3 id="412-modulo-laboratorio-tecnico-rma-laboratorio">4.12. Módulo Laboratorio Técnico RMA (<code>/laboratorio</code>)</h3>
+<p>Gestión de servicio técnico, reparaciones y garantías de equipos satelitales.</p>
+<h4 id="a-tablero-kanban-de-rma">A. Tablero Kanban de RMA</h4>
+<p>Organizado en 4 columnas dinámicas para un seguimiento visual del estado de las reparaciones:</p>
+<pre><code>┌─────────────────┬─────────────────┬────────────────────┬─────────────────┐
+│  1. INGRESADOS  │ 2. EN REPARACIÓN│3. ESPERANDO REPUEST│  4. TERMINADOS  │
+├─────────────────┼─────────────────┼────────────────────┼─────────────────┤
+│ [Ticket #102]   │ [Ticket #098]   │ [Ticket #094]      │ [Ticket #088]   │
+│ Client: Apache  │ Client: Pluspe  │ Client: YPF        │ Client: Vista   │
+│ Equipo: Starlink│ Equipo: Router  │ Espera: Cable PoE  │ Reparado OK     │
+└─────────────────┴─────────────────┴────────────────────┴─────────────────┘
+</code></pre>
+<h4 id="b-hoja-de-ruta-tecnica-gestion-del-ticket">B. Hoja de Ruta Técnica (Gestión del Ticket)</h4>
+<p>Al abrir una tarjeta del Kanban:<br />
+1. <strong>Asignación de Técnico:</strong> Seleccione el profesional responsable del caso.<br />
+2. <strong>Informe de Diagnóstico:</strong> Ingrese el análisis técnico detallado de la falla detectada.<br />
+3. <strong>Consumo de Repuestos con Descuento Automático de Stock:</strong><br />
+   * Seleccione del catálogo los repuestos o insumos consumidos para la reparación (Ej: 1x Cable PoE, 1x Conector RJ45 Industrial).<br />
+   * Al guardar la hoja de ruta, el sistema <strong>descontará automáticamente las unidades del módulo de Stock</strong>.<br />
+4. Mueva la tarjeta a <code>Terminado</code> para notificar al cliente o autorizar su posterior re-despacho en Envíos.</p>
+<hr />
+<h3 id="413-modulo-whatsapp-bot-asistente-virtual-bot">4.13. Módulo WhatsApp Bot / Asistente Virtual (<code>/bot</code>)</h3>
+<p>Configuración del canal de atención automatizada por WhatsApp.</p>
+<h4 id="a-control-de-operacion-global">A. Control de Operación Global</h4>
+<ul>
+<li><strong>Switch Principal:</strong> Enciende o apaga la respuesta automática del bot.</li>
+</ul>
+<h4 id="b-editor-de-mensajes-y-plantillas">B. Editor de Mensajes y Plantillas</h4>
+<p>Permite personalizar los textos de interacción automatizada:<br />
+* <strong>Mensaje de Bienvenida:</strong> Saludo inicial y menú de opciones principales.<br />
+* <strong>Mensaje de Derivación a Soporte:</strong> Texto enviado al transferir con un operador humano.<br />
+* <strong>Mensaje Fuera de Horario:</strong> Respuesta automática emitida fuera del horario laboral.</p>
+<h4 id="c-base-de-conocimiento-para-ia-rag">C. Base de Conocimiento para IA (RAG)</h4>
+<ul>
+<li>Carga de artículos, preguntas frecuentes y especificaciones técnicas que la Inteligencia Artificial utiliza para responder consultas complejas de clientes de forma autónoma.</li>
+</ul>
+<h4 id="d-previsualizacion-interactiva-en-simulador">D. Previsualización Interactiva en Simulador</h4>
+<p>Muestra un teléfono celular virtual en pantalla que emula en tiempo real la experiencia que vivirá el cliente al chatear con el bot de la empresa.</p>
+<hr />
+<h3 id="414-modulo-estado-de-pedidos-trazabilidad-unificada-estado-pedidos">4.14. Módulo Estado de Pedidos - Trazabilidad Unificada (<code>/estado-pedidos</code>)</h3>
+<p>Consola de control de trazabilidad en 6 etapas continuas para todo el personal de la empresa:</p>
+<pre><code>┌─────────────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────┐
+│ 1. INGRESO  │2.FACTURACIÓN│ 3. COBRANZA │4.PREPARACIÓN│5.EN TRÁNSITO│ 6.ENTREGADO │
+└─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
+</code></pre>
+<h4 id="a-trazabilidad-por-etapa">A. Trazabilidad por Etapa</h4>
+<p>Permite identificar en qué punto de la cadena de valor se encuentra cada pedido comercial en tiempo real:<br />
+1. <strong>Ingreso:</strong> Venta cargada por el ejecutivo.<br />
+2. <strong>Facturación:</strong> En proceso de emisión de comprobante contable.<br />
+3. <strong>Cobranzas:</strong> En espera de confirmación de pago por tesorería.<br />
+4. <strong>Preparación:</strong> En empaque y configuración técnica en depósito.<br />
+5. <strong>En Tránsito:</strong> Despachado por courier con código de tracking asignado.<br />
+6. <strong>Entregado:</strong> Recibido conforme por el cliente final.</p>
+<h4 id="b-indicador-semaforo-de-tiempo-transcurrido">B. Indicador / Semáforo de Tiempo Transcurrido</h4>
+<p>Cada tarjeta calcula los días transcurridos desde que se generó el pedido:<br />
+* 🟩 <strong>1 a 4 días (Normal):</strong> Procesamiento dentro de los plazos estándar.<br />
+* 🟨 <strong>5 a 6 días (Advertencia):</strong> Requiere atención prioritaria para evitar retrasos.<br />
+* 🟥 <strong>Más de 6 días (Demorado):</strong> Destacado con borde rojo animado para intervención inmediata.</p>
+<h4 id="c-ventana-de-detalle-y-bitacora-de-observaciones">C. Ventana de Detalle y Bitácora de Observaciones</h4>
+<p>Al hacer clic en cualquier tarjeta:<br />
+* Visualice la cadena de proceso con indicadores de avance paso a paso.<br />
+* Revise el detalle de clientes, artículos y totales de la transacción.<br />
+* <strong>Bitácora de Observaciones:</strong> Permite a operadores de cualquier área escribir notas de seguimiento internas (Ej: "Cliente solicita entregar después de las 14hs").<br />
+* <strong>Bypass de Facturación/Cobranza (Exclusivo Administrador):</strong> Botón especial que permite a administradores saltear los pasos contables para pedidos de emergencia, enviando el kit directamente a preparación y despacho.</p>
+<hr />
+<h3 id="415-modulos-auxiliares-calendario-chat-y-perfil">4.15. Módulos Auxiliares: Calendario, Chat y Perfil</h3>
+<h4 id="a-calendario-calendario">A. Calendario (<code>/calendario</code>)</h4>
+<ul>
+<li>Programación de reuniones, visitas técnicas a campo, vencimientos de contratos de servicios y alertas de mantenimiento. Soporta visibilidad individual o compartida globalmente.</li>
+</ul>
+<h4 id="b-mensajeria-interna-chat">B. Mensajería Interna (<code>/chat</code>)</h4>
+<ul>
+<li>Chat directo entre operadores del sistema para coordinar entregas, consultas de stock o validaciones de pago sin salir de la plataforma.</li>
+</ul>
+<h4 id="c-mi-perfil-perfil">C. Mi Perfil (<code>/perfil</code>)</h4>
+<ul>
+<li>Permite al operador actualizar su foto de perfil, teléfono de contacto y revisar sus permisos vigentes.</li>
+</ul>
+<hr />
+<h2 id="5-circuitos-operativos-recomendados-paso-a-paso">5. Circuitos Operativos Recomendados (Paso a Paso)</h2>
+<h3 id="circuito-1-flujo-completo-de-venta-y-entrega-de-hardware-satelital">Circuito 1: Flujo Completo de Venta y Entrega de Hardware Satelital</h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    autonumber
+    actor Vendedor
+    actor Facturador
+    actor Tesoreria
+    actor Deposito
+    actor Tecnico
+
+    Vendedor-&gt;&gt;Módulo Ventas: 1. Crear Cliente y Cargar Nueva Venta
+    Módulo Ventas--&gt;&gt;Módulo Facturacion: Genera Orden Pendiente
+    Facturador-&gt;&gt;Módulo Facturacion: 2. Emite Comprobante y adjunta PDF
+    Módulo Facturacion--&gt;&gt;Módulo Cobranzas: Deriva Factura por Cobrar
+    Tesoreria-&gt;&gt;Módulo Cobranzas: 3. Registra Pago de Transferencia/Cheque
+    Módulo Cobranzas--&gt;&gt;Módulo Envios: Libera Orden para Despacho
+    Deposito-&gt;&gt;Módulo Envios: 4. Empaqueta kit, asigna Courier y Tracking ID
+    Deposito-&gt;&gt;Módulo Stock: 5. Descuento automático de Terminal en Stock
+    Tecnico-&gt;&gt;Módulo Operativa: 6. Alta de Nodo Satelital, asignación de IP y Tráfico
+</code></pre>
+<ol>
+<li><strong>Vendedor (<code>/ventas</code>):</strong> Registra al cliente y genera la venta seleccionando el kit satelital.</li>
+<li><strong>Facturador (<code>/facturacion</code>):</strong> Revisa la venta, asigna el número de factura fiscal oficial y adjunta el PDF.</li>
+<li><strong>Tesorería (<code>/cobranzas</code>):</strong> Revisa la factura pendiente, registra el cobro y adjunta el comprobante bancario.</li>
+<li><strong>Depósito (<code>/envios</code>):</strong> Al confirmarse el pago, empaqueta el kit, asigna la transportadora (ej: Andreani) e ingresa el número de seguimiento.</li>
+<li><strong>Inventario (<code>/stock</code>):</strong> El sistema descuenta la terminal enviada del inventario disponible.</li>
+<li><strong>Operativa (<code>/operativa</code>):</strong> El equipo técnico da de alta el nodo en la consola satelital, configurando la IP, el plan de Gigabytes y la ubicación del sitio en campo.</li>
+</ol>
+<hr />
+<h3 id="circuito-2-flujo-de-soporte-tecnico-y-garantia-rma">Circuito 2: Flujo de Soporte Técnico y Garantía (RMA)</h3>
+<ol>
+<li><strong>Atención al Cliente (<code>/ventas/reclamo</code>):</strong> Registra el inconveniente reportado por el cliente con prioridad <code>URGENTE</code>.</li>
+<li><strong>Laboratorio Técnico (<code>/laboratorio</code>):</strong> El ticket ingresa en la columna <code>Ingresados</code> del tablero Kanban.</li>
+<li><strong>Diagnóstico e Intervención:</strong> El técnico arrastra la tarjeta a <code>En Reparación</code>, redacta la falla detectada en la Hoja de Ruta e indica los repuestos a sustituir (Ej: Fuente de alimentación).</li>
+<li><strong>Descuento de Insumos:</strong> Al guardar, el sistema descuenta automáticamente los repuestos consumidos del Módulo de Stock.</li>
+<li><strong>Cierre y Entrega:</strong> Se mueve la tarjeta a <code>Terminado</code> y se notifica al cliente o a logística para el reenvío del equipo reparado.</li>
+</ol>
+<hr />
+<h2 id="6-preguntas-frecuentes-y-solucion-de-problemas-faq">6. Preguntas Frecuentes y Solución de Problemas (FAQ)</h2>
+<h3 id="que-debo-hacer-si-una-venta-requiere-envio-urgente-y-la-factura-aun-no-fue-emitida">¿Qué debo hacer si una venta requiere envío urgente y la factura aún no fue emitida?</h3>
+<p>Un operador con rol <strong>ADMIN</strong> puede ingresar a la orden desde el módulo <code>/estado-pedidos</code>, abrir el detalle del pedido y presionar el botón <strong>"Omitir Facturación y Cobranza"</strong>. Esto enviará el pedido directamente a la etapa de Preparación y Despacho Logístico.</p>
+<h3 id="como-se-si-un-cliente-ha-superado-su-limite-de-datos-satelitales">¿Cómo sé si un cliente ha superado su límite de datos satelitales?</h3>
+<p>Consulte el módulo <code>/operativa</code> o el perfil del cliente en <code>/clientes/[id]</code>. Las barras de consumo de Gigabytes se mostrarán en <strong>rojo</strong> cuando superen el 90% de su plan asignado. Desde el módulo <code>/operativa</code>, un técnico puede suspender temporalmente el servicio o recargar Gigabytes adicionales.</p>
+<h3 id="por-que-no-puedo-visualizar-ciertos-modulos-en-la-barra-lateral">¿Por qué no puedo visualizar ciertos módulos en la barra lateral?</h3>
+<p>La barra lateral solo muestra los módulos autorizados para su <strong>Rol</strong> o aquellos concedidos individualmente a través de la sección de <strong>Permisos Granulares</strong> por el Administrador. Si requiere acceso a una sección adicional, solicite a un administrador que actualice sus permisos en <code>/admin</code>.</p>
+<hr />
+<p><em>Manual elaborado para la plataforma de gestión de Aitue Cominca S.A. — Versión 1.0</em></p>
+
+    <div class="footer-note">
+        Documento oficial generado para Aitue Cominca S.A. — Prohibida su reproducción no autorizada.
+    </div>
+</body>
+</html>

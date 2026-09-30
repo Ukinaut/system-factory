@@ -3,8 +3,18 @@
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Download, Plus, MapPin, Activity, Server, History, Edit, Save, X, Globe, Receipt, ExternalLink, FileText, Network, Phone, Mail, ChevronRight, AlertTriangle, RefreshCw, File, Upload, HelpCircle, Trash2, ChevronDown, ChevronUp, Eye } from "lucide-react";
-import { getClientById, updateClient, createClient, createClientEvent, deleteClientEvent, updateClientEvent, updateClientPriority } from "@/actions/clients";
+import { getClientById, updateClient, createClient, createClientEvent, deleteClientEvent, updateClientEvent, updateClientPriority, createClientDocument, deleteClientDocument } from "@/actions/clients";
 import { getCurrentUserSession } from "@/actions/users";
+import { getClientServices, createClientService, deleteClientService } from "@/actions/services";
+
+const CATEGORIA_DOC_CONFIG: Record<string, { label: string; color: string }> = {
+  FISCAL: { label: "Documentación Fiscal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  RETENCION: { label: "Certificado Retención", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  CONTRATO: { label: "Contrato / Acuerdo", color: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
+  PAGO: { label: "Comprobante Pago", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  LEGAL: { label: "Legal / Poder", color: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
+  OTRO: { label: "Otro Documento", color: "bg-gray-500/10 text-gray-400 border-gray-500/20" },
+};
 
 export default function PerfilCliente({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -65,6 +75,174 @@ export default function PerfilCliente({ params }: { params: Promise<{ id: string
   const [compras, setCompras] = useState<any[]>([]);
   const [eventos, setEventos] = useState<any[]>([]);
   const [editForm, setEditForm] = useState(cliente);
+
+  // Documentos
+  const [isUploadDocModalOpen, setIsUploadDocModalOpen] = useState(false);
+  const [docFilterCategory, setDocFilterCategory] = useState("TODOS");
+  const [docSearchTerm, setDocSearchTerm] = useState("");
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [previewDocTitle, setPreviewDocTitle] = useState<string>("");
+
+  const [formDoc, setFormDoc] = useState({
+    categoria: "FISCAL",
+    titulo: "",
+    descripcion: "",
+    archivoCargado: false,
+    archivoNombre: "",
+    archivoBase64: "",
+    tipoArchivo: "pdf",
+    tamanioBytes: 0,
+  });
+
+  // Servicios y Abonos Mensuales
+  const [serviciosCliente, setServiciosCliente] = useState<any[]>([]);
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [formService, setFormService] = useState({
+    nombreService: "Abono Mensual Starlink",
+    montoMensual: 0,
+    moneda: "ARS",
+    diaCobro: 5,
+    categoria: "INTERNET",
+  });
+
+  const handleCreateService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formService.montoMensual <= 0) {
+      alert("Por favor ingrese un monto mensual mayor a 0.");
+      return;
+    }
+
+    setLoading(true);
+    const res = await createClientService(clientId, {
+      nombreService: formService.nombreService,
+      montoMensual: Number(formService.montoMensual),
+      moneda: formService.moneda,
+      diaCobro: Number(formService.diaCobro),
+      categoria: formService.categoria,
+    });
+    setLoading(false);
+
+    if (res.success) {
+      alert("¡Abono mensual creado exitosamente!");
+      setIsServiceModalOpen(false);
+      setFormService({
+        nombreService: "Abono Mensual Starlink",
+        montoMensual: 0,
+        moneda: "ARS",
+        diaCobro: 5,
+        categoria: "INTERNET",
+      });
+      loadData();
+    } else {
+      alert("Error al crear abono: " + res.error);
+    }
+  };
+
+  const handleDeleteService = async (serviceId: string, nombre: string) => {
+    if (!confirm(`¿Está seguro de eliminar el abono "${nombre}" de este cliente?`)) return;
+
+    setLoading(true);
+    const res = await deleteClientService(serviceId);
+    setLoading(false);
+
+    if (res.success) {
+      alert("Abono mensual eliminado correctamente.");
+      loadData();
+    } else {
+      alert("Error al eliminar abono: " + res.error);
+    }
+  };
+
+  const handleDocFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("El archivo excede el tamaño máximo permitido de 10 MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
+      setFormDoc((prev) => ({
+        ...prev,
+        archivoCargado: true,
+        archivoNombre: file.name,
+        archivoBase64: reader.result as string,
+        tipoArchivo: ext,
+        tamanioBytes: file.size,
+        titulo: prev.titulo ? prev.titulo : file.name.replace(/\.[^/.]+$/, ""),
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveDocument = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formDoc.archivoCargado || !formDoc.archivoBase64) {
+      alert("Por favor adjunte un archivo.");
+      return;
+    }
+    if (!formDoc.titulo.trim()) {
+      alert("Por favor ingrese un título para el documento.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await createClientDocument(clientId, {
+        categoria: formDoc.categoria,
+        titulo: formDoc.titulo.trim(),
+        descripcion: formDoc.descripcion || undefined,
+        archivoUrl: formDoc.archivoBase64,
+        archivoNombre: formDoc.archivoNombre,
+        tipoArchivo: formDoc.tipoArchivo,
+        tamanioBytes: formDoc.tamanioBytes,
+      });
+
+      if (res.success) {
+        alert("¡Documento adjuntado exitosamente al perfil del cliente!");
+        setIsUploadDocModalOpen(false);
+        setFormDoc({
+          categoria: "FISCAL",
+          titulo: "",
+          descripcion: "",
+          archivoCargado: false,
+          archivoNombre: "",
+          archivoBase64: "",
+          tipoArchivo: "pdf",
+          tamanioBytes: 0,
+        });
+        loadData();
+      } else {
+        alert("Error al guardar documento: " + res.error);
+      }
+    } catch (err: any) {
+      alert("Error al procesar la solicitud: " + (err?.message || "Ocurrió un error inesperado al subir el documento."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string, tituloDoc: string) => {
+    if (!confirm(`¿Está seguro de eliminar el documento "${tituloDoc}"?`)) return;
+
+    setLoading(true);
+    try {
+      const res = await deleteClientDocument(docId, clientId);
+      if (res.success) {
+        alert("Documento eliminado correctamente.");
+        loadData();
+      } else {
+        alert("Error al eliminar documento: " + res.error);
+      }
+    } catch (err: any) {
+      alert("Error de conexión: " + (err?.message || "Ocurrió un error inesperado."));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -230,6 +408,12 @@ export default function PerfilCliente({ params }: { params: Promise<{ id: string
       allSales.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setCompras(allSales);
     }
+
+    const servicesRes = await getClientServices(clientId);
+    if (servicesRes.success) {
+      setServiciosCliente(servicesRes.services || []);
+    }
+
     setLoading(false);
   };
 
@@ -303,7 +487,7 @@ export default function PerfilCliente({ params }: { params: Promise<{ id: string
   }
 
   return (
-    <div className="max-w-6xl mx-auto pb-12">
+    <div className="w-full pb-12 relative flex-1 flex flex-col min-h-full">
       {/* Header Profile */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div className="flex items-center gap-4">
@@ -396,6 +580,30 @@ export default function PerfilCliente({ params }: { params: Promise<{ id: string
           className={`px-6 py-3 font-semibold text-sm tracking-wider uppercase transition-colors cursor-pointer ${activeTab === 'historial' ? 'text-[#0078D7] border-b-2 border-[#0078D7]' : 'text-text-muted hover:text-text-primary'}`}
         >
           Historial de Movimientos
+        </button>
+        <button 
+          onClick={() => setActiveTab("documentacion")}
+          className={`px-6 py-3 font-semibold text-sm tracking-wider uppercase transition-colors cursor-pointer flex items-center gap-2 ${activeTab === 'documentacion' ? 'text-[#0078D7] border-b-2 border-[#0078D7]' : 'text-text-muted hover:text-text-primary'}`}
+        >
+          <FileText className="w-4 h-4" />
+          Documentación
+          {(cliente.documents && cliente.documents.length > 0) && (
+            <span className="px-2 py-0.5 text-[10px] rounded-full bg-[#0078D7]/20 text-[#0078D7] border border-[#0078D7]/30 font-bold">
+              {cliente.documents.length}
+            </span>
+          )}
+        </button>
+        <button 
+          onClick={() => setActiveTab("abonos")}
+          className={`px-6 py-3 font-semibold text-sm tracking-wider uppercase transition-colors cursor-pointer flex items-center gap-2 ${activeTab === 'abonos' ? 'text-[#0078D7] border-b-2 border-[#0078D7]' : 'text-text-muted hover:text-text-primary'}`}
+        >
+          <Receipt className="w-4 h-4" />
+          Abonos Mensuales
+          {serviciosCliente.length > 0 && (
+            <span className="px-2 py-0.5 text-[10px] rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold">
+              {serviciosCliente.length}
+            </span>
+          )}
         </button>
         {!cliente.parentId && (
           <button 
@@ -814,6 +1022,299 @@ export default function PerfilCliente({ params }: { params: Promise<{ id: string
             ) : (
               <div className="col-span-2 bg-bg-card border border-border-custom rounded-xl p-12 text-center text-text-muted italic">
                 Aún no has registrado subnodos o áreas para este cliente.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Documentación Fiscal y Legal */}
+      {activeTab === "documentacion" && (
+        <div className="space-y-6 animate-in fade-in duration-200 text-left">
+          {/* Top Bar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-bg-card p-6 rounded-xl border border-border-custom shadow-md">
+            <div>
+              <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                <FileText className="text-[#0078D7] w-5 h-5" />
+                Documentación Fiscal, Retenciones y Contratos
+              </h2>
+              <p className="text-sm text-text-muted mt-1">
+                Visualiza, descarga y gestiona la documentación digital adjunta del cliente.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setFormDoc({
+                  categoria: "FISCAL",
+                  titulo: "",
+                  descripcion: "",
+                  archivoCargado: false,
+                  archivoNombre: "",
+                  archivoBase64: "",
+                  tipoArchivo: "pdf",
+                  tamanioBytes: 0,
+                });
+                setIsUploadDocModalOpen(true);
+              }}
+              className="bg-[#0078D7] hover:bg-[#005a9e] text-white px-4 py-2.5 rounded-md font-bold transition-colors flex items-center gap-2 cursor-pointer shadow-md text-sm shrink-0"
+            >
+              <Plus className="w-4 h-4" /> Subir Documento
+            </button>
+          </div>
+
+          {/* Categorías y Búsqueda */}
+          <div className="bg-bg-card p-4 rounded-xl border border-border-custom shadow-sm flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center">
+            {/* Buscador */}
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Buscar documento por título o descripción..."
+                value={docSearchTerm}
+                onChange={(e) => setDocSearchTerm(e.target.value)}
+                className="w-full bg-bg-subtle border border-border-custom rounded-lg pl-10 pr-4 py-2 text-sm text-text-primary focus:border-[#0078D7] outline-none transition-colors"
+              />
+              <FileText className="w-4 h-4 text-text-muted absolute left-3.5 top-3" />
+            </div>
+
+            {/* Categorías filtro */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setDocFilterCategory("TODOS")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${
+                  docFilterCategory === "TODOS"
+                    ? "bg-[#0078D7] text-white border-[#0078D7]"
+                    : "bg-bg-subtle text-text-muted border-border-custom hover:text-text-primary"
+                }`}
+              >
+                Todos ({(cliente.documents || []).length})
+              </button>
+
+              {Object.entries(CATEGORIA_DOC_CONFIG).map(([key, config]) => {
+                const count = (cliente.documents || []).filter((d: any) => d.categoria === key).length;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setDocFilterCategory(key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border flex items-center gap-1.5 ${
+                      docFilterCategory === key
+                        ? "bg-[#0078D7] text-white border-[#0078D7]"
+                        : "bg-bg-subtle text-text-muted border-border-custom hover:text-text-primary"
+                    }`}
+                  >
+                    <span>{config.label}</span>
+                    {count > 0 && (
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                        docFilterCategory === key ? "bg-white/20 text-white" : "bg-bg-card text-text-secondary"
+                      }`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Grid de Documentos */}
+          {(() => {
+            const filteredDocs = (cliente.documents || []).filter((doc: any) => {
+              const matchesCategory = docFilterCategory === "TODOS" || doc.categoria === docFilterCategory;
+              const matchesSearch =
+                !docSearchTerm ||
+                doc.titulo.toLowerCase().includes(docSearchTerm.toLowerCase()) ||
+                (doc.descripcion && doc.descripcion.toLowerCase().includes(docSearchTerm.toLowerCase()));
+              return matchesCategory && matchesSearch;
+            });
+
+            if (filteredDocs.length === 0) {
+              return (
+                <div className="bg-bg-card border border-border-custom rounded-xl p-12 text-center text-text-muted flex flex-col items-center justify-center">
+                  <FileText className="w-12 h-12 text-border-custom mb-3" />
+                  <h4 className="text-lg text-text-primary font-semibold mb-1">No se encontraron documentos</h4>
+                  <p className="max-w-md text-sm">
+                    {docFilterCategory !== "TODOS" || docSearchTerm
+                      ? "No hay documentos cargados que coincidan con la categoría o filtro de búsqueda seleccionado."
+                      : "Aún no se ha adjuntado documentación fiscal, certificados o contratos a la ficha de este cliente."}
+                  </p>
+                  <button
+                    onClick={() => setIsUploadDocModalOpen(true)}
+                    className="mt-4 bg-[#0078D7]/10 hover:bg-[#0078D7]/20 text-[#0078D7] border border-[#0078D7]/30 px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Subir Primer Documento
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredDocs.map((doc: any) => {
+                  const catConfig = CATEGORIA_DOC_CONFIG[doc.categoria] || CATEGORIA_DOC_CONFIG.OTRO;
+                  const formattedSize = doc.tamanioBytes
+                    ? doc.tamanioBytes > 1024 * 1024
+                      ? `${(doc.tamanioBytes / (1024 * 1024)).toFixed(2)} MB`
+                      : `${(doc.tamanioBytes / 1024).toFixed(0)} KB`
+                    : null;
+
+                  return (
+                    <div
+                      key={doc.id}
+                      className="bg-bg-card rounded-xl border border-border-custom hover:border-[#0078D7]/40 p-5 shadow-md hover:shadow-lg transition-all flex flex-col justify-between group"
+                    >
+                      <div>
+                        {/* Header card: Categoría & Trash */}
+                        <div className="flex justify-between items-start gap-2 mb-3">
+                          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-md border uppercase tracking-wider ${catConfig.color}`}>
+                            {catConfig.label}
+                          </span>
+                          {session?.rol === "ADMIN" && (
+                            <button
+                              onClick={() => handleDeleteDocument(doc.id, doc.titulo)}
+                              className="text-text-muted hover:text-rose-500 transition-colors p-1 rounded hover:bg-rose-500/10 cursor-pointer"
+                              title="Eliminar documento"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Title & Icon */}
+                        <div className="flex items-start gap-3 mb-2">
+                          <div className="p-2.5 rounded-lg bg-bg-subtle border border-border-custom shrink-0 text-[#0078D7] group-hover:bg-[#0078D7]/10 transition-colors">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-text-primary text-sm leading-snug line-clamp-2">{doc.titulo}</h3>
+                            <span className="text-[11px] text-text-muted font-mono uppercase block mt-0.5">
+                              {doc.tipoArchivo || "doc"} {formattedSize && `• ${formattedSize}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        {doc.descripcion && (
+                          <p className="text-xs text-text-secondary line-clamp-2 bg-bg-subtle/40 p-2.5 rounded-md border border-border-custom/50 mb-3 leading-relaxed">
+                            {doc.descripcion}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Footer card: Date & Actions */}
+                      <div className="border-t border-border-custom/60 pt-3 mt-3 flex items-center justify-between gap-2">
+                        <span className="text-[11px] text-text-muted">
+                          {new Date(doc.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setPreviewDocUrl(doc.archivoUrl);
+                              setPreviewDocTitle(doc.titulo);
+                            }}
+                            className="bg-bg-subtle hover:bg-[#0078D7]/10 text-text-primary hover:text-[#0078D7] border border-border-custom px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+                            title="Previsualizar en pantalla"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-[#0078D7]" /> Visualizar
+                          </button>
+                          <a
+                            href={doc.archivoUrl}
+                            download={doc.archivoNombre || `${doc.titulo}.${doc.tipoArchivo || "pdf"}`}
+                            className="bg-[#0078D7] hover:bg-[#005a9e] text-white px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                            title="Descargar archivo"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Descargar
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Tab: Abonos Mensuales Recurrentes */}
+      {activeTab === "abonos" && (
+        <div className="space-y-6 animate-in fade-in duration-200 text-left">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-bg-card p-6 rounded-xl border border-border-custom shadow-md">
+            <div>
+              <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                <Receipt className="text-amber-500 w-5 h-5" />
+                Servicios y Abonos Mensuales Recurrentes
+              </h2>
+              <p className="text-sm text-text-muted mt-1">
+                Servicios contratados con facturación periódica automatizada.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsServiceModalOpen(true)}
+              className="bg-[#0078D7] hover:bg-[#005a9e] text-white px-4 py-2.5 rounded-md font-bold transition-colors flex items-center gap-2 cursor-pointer shadow-md text-sm shrink-0"
+            >
+              <Plus className="w-4 h-4" /> Agregar Abono Mensual
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {serviciosCliente.length > 0 ? (
+              serviciosCliente.map((srv) => (
+                <div
+                  key={srv.id}
+                  className="bg-bg-card rounded-xl border border-border-custom hover:border-amber-500/40 p-5 shadow-md hover:shadow-lg transition-all flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-base text-text-primary tracking-wide">
+                          {srv.nombreService || srv.tipo}
+                        </h3>
+                        <p className="text-xs text-text-muted">Categoría: <span className="font-semibold text-text-primary">{srv.categoria}</span></p>
+                      </div>
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-wider">
+                        {srv.moneda || "ARS"}
+                      </span>
+                    </div>
+
+                    <div className="bg-bg-subtle p-3 rounded-lg border border-border-custom/60 space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-text-muted">Monto Mensual:</span>
+                        <span className="font-mono font-bold text-emerald-400 text-sm">
+                          {srv.moneda === "USD" ? "US$" : "$"} {srv.montoMensual?.toLocaleString("es-AR")}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-text-muted">Día de Cobro:</span>
+                        <span className="font-bold text-[#0078D7]">{srv.diaCobro} de cada mes</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-text-muted">Último Mes Facturado:</span>
+                        <span className="font-mono text-text-secondary">{srv.ultimoMesFacturado || "Ninguno"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-border-custom flex justify-end">
+                    <button
+                      onClick={() => handleDeleteService(srv.id, srv.nombreService || srv.tipo)}
+                      className="text-xs text-rose-400 hover:text-rose-300 font-bold flex items-center gap-1.5 px-3 py-1.5 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Eliminar Abono
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-3 bg-bg-card border border-border-custom rounded-xl p-12 text-center text-text-muted flex flex-col items-center">
+                <Receipt className="w-12 h-12 text-border-custom mb-3" />
+                <h4 className="text-lg text-text-primary font-semibold mb-1">Sin Abonos Mensuales</h4>
+                <p className="max-w-md text-sm">Aún no se han configurado abonos recurrentes para este cliente.</p>
+                <button
+                  onClick={() => setIsServiceModalOpen(true)}
+                  className="mt-4 bg-[#0078D7]/10 hover:bg-[#0078D7]/20 text-[#0078D7] border border-[#0078D7]/30 px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Registrar Primer Abono
+                </button>
               </div>
             )}
           </div>
@@ -1278,6 +1779,296 @@ export default function PerfilCliente({ params }: { params: Promise<{ id: string
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Subir Documento */}
+      {isUploadDocModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-card border border-border-custom rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-border-custom bg-bg-subtle">
+              <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#0078D7]" />
+                Adjuntar Documentación al Cliente
+              </h2>
+              <button
+                onClick={() => setIsUploadDocModalOpen(false)}
+                className="text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                disabled={loading}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDocument} className="p-6 space-y-4 text-left">
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
+                  Categoría del Documento *
+                </label>
+                <select
+                  value={formDoc.categoria}
+                  onChange={(e) => setFormDoc((prev) => ({ ...prev, categoria: e.target.value }))}
+                  className="w-full bg-bg-subtle border border-border-custom rounded-md px-4 py-2.5 text-text-primary focus:border-[#0078D7] outline-none text-sm font-medium"
+                  required
+                  disabled={loading}
+                >
+                  {Object.entries(CATEGORIA_DOC_CONFIG).map(([key, config]) => (
+                    <option key={key} value={key}>
+                      {config.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
+                  Título / Nombre del Documento *
+                </label>
+                <input
+                  type="text"
+                  value={formDoc.titulo}
+                  onChange={(e) => setFormDoc((prev) => ({ ...prev, titulo: e.target.value }))}
+                  placeholder="Ej: Constancia AFIP CUIT 2026, Retención IIBB Agosto..."
+                  className="w-full bg-bg-subtle border border-border-custom rounded-md px-4 py-2.5 text-text-primary focus:border-[#0078D7] outline-none text-sm"
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
+                  Descripción / Observaciones (Opcional)
+                </label>
+                <textarea
+                  value={formDoc.descripcion}
+                  onChange={(e) => setFormDoc((prev) => ({ ...prev, descripcion: e.target.value }))}
+                  placeholder="Notas adicionales o detalles sobre este certificado o archivo..."
+                  rows={3}
+                  className="w-full bg-bg-subtle border border-border-custom rounded-md px-4 py-2.5 text-text-primary focus:border-[#0078D7] outline-none text-sm resize-none"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
+                  Seleccionar Archivo (PDF o Imagen, Máx 10 MB) *
+                </label>
+                <div className="border-2 border-dashed border-border-custom hover:border-[#0078D7]/50 rounded-lg p-6 text-center cursor-pointer transition-colors relative bg-bg-subtle/30">
+                  <input
+                    type="file"
+                    accept=".pdf,image/*,.doc,.docx"
+                    onChange={handleDocFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={loading}
+                  />
+                  <div className="flex flex-col items-center justify-center gap-1.5">
+                    <Upload className="w-8 h-8 text-[#0078D7]" />
+                    <span className="text-sm font-semibold text-text-primary">
+                      {formDoc.archivoCargado ? formDoc.archivoNombre : "Haga clic o arrastre un archivo aquí"}
+                    </span>
+                    <span className="text-xs text-text-muted">
+                      {formDoc.archivoCargado
+                        ? `${(formDoc.tamanioBytes / (1024 * 1024)).toFixed(2)} MB (${formDoc.tipoArchivo.toUpperCase()})`
+                        : "Archivos permitidos: PDF, PNG, JPG, WEBP (Hasta 10 MB)"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 pt-4 border-t border-border-custom bg-bg-subtle font-medium text-sm">
+                <button
+                  type="button"
+                  onClick={() => setIsUploadDocModalOpen(false)}
+                  className="px-5 py-2 rounded-md text-text-secondary hover:bg-bg-subtle border border-border-custom transition-colors cursor-pointer"
+                  disabled={loading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="bg-[#0078D7] hover:bg-[#005a9e] text-white px-5 py-2 rounded-md font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-md"
+                  disabled={loading}
+                >
+                  {loading ? "Subiendo..." : "Guardar Documento"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Previsualización de Documento */}
+      {previewDocUrl && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-card border border-border-custom rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 px-6 border-b border-border-custom bg-bg-subtle shrink-0">
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-[#0078D7]" />
+                <h2 className="text-lg font-bold text-text-primary truncate max-w-xl">{previewDocTitle || "Visualizador de Documento"}</h2>
+              </div>
+              <div className="flex items-center gap-3">
+                <a
+                  href={previewDocUrl}
+                  download={previewDocTitle || "documento"}
+                  className="bg-[#0078D7] hover:bg-[#005a9e] text-white px-3 py-1.5 rounded-md font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" /> Descargar
+                </a>
+                <button
+                  onClick={() => setPreviewDocUrl(null)}
+                  className="text-text-muted hover:text-text-primary transition-colors p-1 rounded-md hover:bg-bg-subtle cursor-pointer"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Viewer Content */}
+            <div className="flex-1 p-4 bg-black/40 overflow-auto flex items-center justify-center">
+              {previewDocUrl.startsWith("data:image/") || /\.(jpg|jpeg|png|webp|gif)$/i.test(previewDocUrl) ? (
+                <img
+                  src={previewDocUrl}
+                  alt={previewDocTitle}
+                  className="max-h-full max-w-full object-contain rounded-md shadow-lg"
+                />
+              ) : (
+                <iframe
+                  src={previewDocUrl}
+                  title={previewDocTitle}
+                  className="w-full h-full rounded-md border border-border-custom bg-white"
+                />
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-3 px-6 border-t border-border-custom bg-bg-subtle flex justify-end shrink-0">
+              <button
+                onClick={() => setPreviewDocUrl(null)}
+                className="bg-bg-card hover:bg-bg-subtle border border-border-custom px-5 py-2 rounded-md text-text-secondary text-sm font-medium transition-colors cursor-pointer"
+              >
+                Cerrar Visualizador
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Agregar Abono Mensual */}
+      {isServiceModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-card border border-border-custom rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-border-custom bg-bg-subtle">
+              <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-amber-500" />
+                Agregar Abono Mensual Recurrente
+              </h2>
+              <button onClick={() => setIsServiceModalOpen(false)} className="text-text-muted hover:text-text-primary transition-colors cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateService} className="p-6 space-y-4 text-left">
+              <div>
+                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+                  Nombre / Descripción del Servicio *
+                </label>
+                <input
+                  type="text"
+                  value={formService.nombreService}
+                  onChange={(e) => setFormService({ ...formService, nombreService: e.target.value })}
+                  className="w-full bg-bg-subtle border border-border-custom rounded-lg px-3.5 py-2.5 text-sm text-text-primary focus:border-[#0078D7] outline-none"
+                  placeholder="Ej: Servicio de Internet Satelital Starlink"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+                    Monto Mensual *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    value={formService.montoMensual || ""}
+                    onChange={(e) => setFormService({ ...formService, montoMensual: Number(e.target.value) })}
+                    className="w-full bg-bg-subtle border border-border-custom rounded-lg px-3.5 py-2.5 text-sm text-emerald-400 font-mono font-bold focus:border-[#0078D7] outline-none"
+                    placeholder="Ej: 85000"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+                    Moneda
+                  </label>
+                  <select
+                    value={formService.moneda}
+                    onChange={(e) => setFormService({ ...formService, moneda: e.target.value })}
+                    className="w-full bg-bg-subtle border border-border-custom rounded-lg px-3.5 py-2.5 text-sm text-text-primary focus:border-[#0078D7] outline-none"
+                  >
+                    <option value="ARS">Pesos (ARS)</option>
+                    <option value="USD">Dólares (USD)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+                    Día de Cobro Mensual (1 - 31)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={formService.diaCobro}
+                    onChange={(e) => setFormService({ ...formService, diaCobro: Number(e.target.value) })}
+                    className="w-full bg-bg-subtle border border-border-custom rounded-lg px-3.5 py-2.5 text-sm font-mono text-text-primary focus:border-[#0078D7] outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+                    Categoría
+                  </label>
+                  <select
+                    value={formService.categoria}
+                    onChange={(e) => setFormService({ ...formService, categoria: e.target.value })}
+                    className="w-full bg-bg-subtle border border-border-custom rounded-lg px-3.5 py-2.5 text-sm text-text-primary focus:border-[#0078D7] outline-none"
+                  >
+                    <option value="INTERNET">Internet</option>
+                    <option value="CONECTIVIDAD">Conectividad</option>
+                    <option value="MANTENIMIENTO">Mantenimiento</option>
+                    <option value="ABONO">Abono General</option>
+                    <option value="OTRO">Otro</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-border-custom">
+                <button
+                  type="button"
+                  onClick={() => setIsServiceModalOpen(false)}
+                  className="px-4 py-2 rounded-lg text-text-secondary hover:bg-bg-subtle border border-border-custom text-xs font-bold cursor-pointer"
+                  disabled={loading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-[#0078D7] hover:bg-[#005a9e] text-white px-5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                >
+                  <Plus className="w-4 h-4" />
+                  {loading ? "Guardando..." : "Guardar Abono"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

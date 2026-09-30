@@ -265,6 +265,8 @@ export async function updateShipping(data: {
       }
     }
 
+    revalidatePath("/envios");
+    revalidatePath("/estado-pedidos");
     return { success: true, shipping };
   } catch (error: any) {
     console.error("Error updating shipping:", error);
@@ -272,11 +274,32 @@ export async function updateShipping(data: {
   }
 }
 
+import { addToRecycleBin } from "@/actions/recycleBin";
+
 export async function deleteShipping(id: string) {
   try {
     const session = await getSession();
     if (session?.rol !== "ADMIN") {
       return { success: false, error: "No autorizado. Solo los administradores pueden eliminar envíos." };
+    }
+
+    const fullShip = await prisma.shipping.findUnique({
+      where: { id },
+      include: {
+        sale: {
+          include: { client: true }
+        }
+      }
+    });
+
+    if (fullShip) {
+      await addToRecycleBin({
+        entityType: "SHIPPING",
+        entityId: fullShip.id,
+        title: `Envío: Orden ${fullShip.sale?.numeroOrden || "N/A"}`,
+        subtitle: `Cliente: ${fullShip.sale?.client?.razonSocial || "N/A"} | Transportista: ${fullShip.logistica} (${fullShip.tracking})`,
+        payload: fullShip,
+      });
     }
 
     await prisma.shipping.delete({

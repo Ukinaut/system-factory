@@ -4,6 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
+async function getSession() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("sessionToken")?.value;
+  if (!token) return null;
+  try {
+    const decodedStr = Buffer.from(token, "base64").toString("utf-8");
+    return JSON.parse(decodedStr);
+  } catch {
+    return null;
+  }
+}
+
 export async function getClients() {
   try {
     const cookieStore = await cookies();
@@ -130,8 +142,32 @@ export async function createClient(data: {
   }
 }
 
+import { addToRecycleBin } from "@/actions/recycleBin";
+
 export async function deleteClient(id: string) {
   try {
+    const fullClient = await prisma.client.findUnique({
+      where: { id },
+      include: {
+        sales: { include: { details: true } },
+        quotes: true,
+        claims: true,
+        services: true,
+        equipos: true,
+        events: true,
+      }
+    });
+
+    if (fullClient) {
+      await addToRecycleBin({
+        entityType: "CLIENT",
+        entityId: fullClient.id,
+        title: `Cliente: ${fullClient.razonSocial}`,
+        subtitle: `CUIT/DNI: ${fullClient.cuit || "Sin identificar"} | País: ${fullClient.pais || "AR"}`,
+        payload: fullClient,
+      });
+    }
+
     // 1. Encontrar todas las ventas del cliente para eliminar sus facturas y pagos
     const sales = await prisma.sale.findMany({
       where: { clientId: id },
@@ -233,6 +269,11 @@ export async function getClientById(id: string) {
         events: {
           orderBy: {
             fecha: "desc"
+          }
+        },
+        documents: {
+          orderBy: {
+            createdAt: "desc"
           }
         }
       }
@@ -681,5 +722,56 @@ export async function updateClientPriority(clientId: string, prioridad: string) 
     return { success: false, error: error.message || "Error al actualizar la prioridad del cliente." };
   }
 }
+
+export async function createClientDocument(
+  clientId: string,
+  data: {
+    categoria: string;
+    titulo: string;
+    descripcion?: string;
+    archivoUrl: string;
+    archivoNombre: string;
+    tipoArchivo?: string;
+    tamanioBytes?: number;
+  }
+) {
+  try {
+    const session = await getSession();
+    const doc = await prisma.clientDocument.create({
+      data: {
+        clientId,
+        categoria: data.categoria,
+        titulo: data.titulo,
+        descripcion: data.descripcion || null,
+        archivoUrl: data.archivoUrl,
+        archivoNombre: data.archivoNombre,
+        tipoArchivo: data.tipoArchivo || "pdf",
+        tamanioBytes: data.tamanioBytes || null,
+        subidoPor: session?.nombre ? `${session.nombre} (${session.rol || "OPERADOR"})` : "Sistema",
+      },
+    });
+
+    revalidatePath(`/clientes/${clientId}`);
+    return { success: true, document: doc };
+  } catch (error: any) {
+    console.error("Error creating client document:", error);
+    return { success: false, error: error.message || "Error al subir el documento del cliente." };
+  }
+}
+
+export async function deleteClientDocument(documentId: string, clientId: string) {
+  try {
+    await prisma.clientDocument.delete({
+      where: { id: documentId },
+    });
+
+    revalidatePath(`/clientes/${clientId}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error deleting client document:", error);
+    return { success: false, error: error.message || "Error al eliminar el documento." };
+  }
+}
+
 
 

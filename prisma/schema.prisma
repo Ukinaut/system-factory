@@ -88,6 +88,7 @@ model Client {
   equipos     EquipoCliente[]
   calendarEvents CalendarEvent[]
   events      ClientEvent[]
+  documents   ClientDocument[]
 }
 
 model EquipoCliente {
@@ -246,31 +247,51 @@ model Invoice {
   archivoUrl              String?
   observacionesFacturador String?
   fecha                   DateTime @default(now())
+  saldoPendiente          Float?
+  estadoCobro             String   @default("PENDIENTE") // PENDIENTE, PARCIAL, PAGADO
 
   sale                    Sale     @relation(fields: [saleId], references: [id])
   payments                Payment[]
 }
 
 model Payment {
-  id             String   @id @default(uuid())
-  invoiceId      String
-  comprobanteUrl String?
-  fechaPago      DateTime @default(now())
+  id                      String   @id @default(uuid())
+  invoiceId               String
+  montoCobrado            Float    @default(0)
+  montoRetenciones        Float    @default(0)
+  detallesRetencion       String?  // JSON con lista de retenciones
+  metodoPago              String   @default("Transferencia")
+  tasaCambio              Float?
+  tarjetaCuotas           Int?
+  tarjetaRecargo          Float?
+  numeroCupon             String?
+  observaciones           String?
+  comprobanteUrl          String?
+  comprobanteRetencionUrl String?
+  fechaPago               DateTime @default(now())
 
-  invoice        Invoice  @relation(fields: [invoiceId], references: [id])
+  invoice                 Invoice  @relation(fields: [invoiceId], references: [id])
 }
 
 // 5. Operativa y Envíos
 model Service {
-  id              String   @id @default(uuid())
-  clientId        String
-  tipo            String   // POOL, CORPORATIVO, PRIVADO
-  operador        String   // Telefonica, Telespazio, Ale MC
-  gigasAsignados  Float
-  gigasConsumidos Float    @default(0)
-  status          String   @default("ACTIVO")
+  id                 String   @id @default(uuid())
+  clientId           String
+  nombreService      String   @default("Servicio Mensual")
+  tipo               String   // POOL, CORPORATIVO, PRIVADO, ABONO
+  operador           String   // Telefonica, Telespazio, Ale MC
+  gigasAsignados     Float    @default(0)
+  gigasConsumidos    Float    @default(0)
+  montoMensual       Float    @default(0)
+  moneda             String   @default("ARS")
+  diaCobro           Int      @default(5)
+  categoria          String   @default("SATELITAL") // SATELITAL, SOPORTE, INFRAESTRUCTURA, OTRO
+  ultimoMesFacturado String?  // Formato "YYYY-MM"
+  status             String   @default("ACTIVO")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @default(now()) @updatedAt
 
-  client          Client   @relation(fields: [clientId], references: [id])
+  client             Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model Shipping {
@@ -468,6 +489,36 @@ model ClientEvent {
 
   client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
+
+model ClientDocument {
+  id            String   @id @default(uuid())
+  clientId      String
+  categoria     String   // "FISCAL", "RETENCION", "CONTRATO", "PAGO", "LEGAL", "OTRO"
+  titulo        String
+  descripcion   String?
+  archivoUrl    String
+  archivoNombre String
+  tipoArchivo   String?
+  tamanioBytes  Int?
+  subidoPor     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model RecycleBinItem {
+  id              String   @id @default(uuid())
+  entityType      String   // "CLIENT", "SALE", "INVOICE", "SHIPPING", "PRODUCT", "PURCHASE", "CLAIM", "QUOTE"
+  entityId        String
+  title           String
+  subtitle        String?
+  deletedByUserId String?
+  deletedByName   String?
+  payload         String   // JSON Snapshot serialized
+  deletedAt       DateTime @default(now())
+}
+
 
 
 

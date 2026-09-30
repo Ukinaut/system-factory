@@ -437,7 +437,7 @@ export default function ComprasGestionPage() {
   const areasList = ["LABORATORIO", "OPERATIVA", "DESPACHOS", "COCINA", "BANOS", "LIMPIEZA", "OTROS"];
 
   return (
-    <div className="max-w-6xl mx-auto pb-12">
+    <div className="w-full pb-12">
       {/* Title Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-text-primary tracking-wide flex items-center gap-3">

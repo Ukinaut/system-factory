@@ -13,9 +13,9 @@ export function proxy(request: NextRequest) {
 
   // Rutas públicas
   if (
-    path.startsWith("/login") || 
-    path.startsWith("/select-country") || 
-    path.startsWith("/api/public") || 
+    path.startsWith("/login") ||
+    path.startsWith("/select-country") ||
+    path.startsWith("/api/public") ||
     path.includes(".")
   ) {
     if (token && path.startsWith("/login")) {
@@ -33,17 +33,18 @@ export function proxy(request: NextRequest) {
     // Usar atob() en lugar de Buffer para compatibilidad con Edge Runtime
     const decodedStr = typeof Buffer !== "undefined" ? Buffer.from(token, "base64").toString("utf-8") : atob(token);
     const session = JSON.parse(decodedStr);
-    const { rol } = session;
+    const { rol, correo, permissions } = session;
+    const isAdmin = rol === "ADMIN" || correo === "admin@systemfactory.com" || (Array.isArray(permissions) && permissions.includes("ADMIN"));
 
     // Matriz de permisos RBAC
     // admin puede ver todo.
-    if (rol === "ADMIN") {
+    if (isAdmin) {
       return NextResponse.next();
     }
 
     // Reglas específicas por rol
     if (rol === "VENTAS") {
-      const allowedPaths = ["/ventas", "/clientes", "/facturacion"];
+      const allowedPaths = ["/ventas", "/tienda", "/clientes", "/facturacion"];
       const isAllowed = allowedPaths.some(p => path.startsWith(p)) || path === "/";
       if (!isAllowed) return NextResponse.redirect(new URL("/", request.url));
     }

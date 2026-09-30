@@ -208,7 +208,7 @@ export default function CountryManager({
   };
 
   return (
-    <div className="bg-bg-card rounded-xl shadow-lg border border-border-custom overflow-hidden max-w-7xl mx-auto">
+    <div className="bg-bg-card rounded-xl shadow-lg border border-border-custom overflow-hidden w-full">
       {/* Cabecera del Panel */}
       <div className="p-6 border-b border-border-custom flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-bg-subtle">
         <div className="flex items-center gap-3">

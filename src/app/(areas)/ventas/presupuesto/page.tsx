@@ -222,9 +222,13 @@ export default function NuevoPresupuesto() {
                   <input
                     type="number"
                     min="0"
-                    value={art.precio}
-                    onChange={e => updateArticulo(art.id, "precio", Number(e.target.value))}
+                    value={art.precio === 0 ? "" : art.precio}
+                    onChange={e => {
+                      const raw = e.target.value.replace(/^0+(?=\d)/, "");
+                      updateArticulo(art.id, "precio", raw === "" ? 0 : Number(raw));
+                    }}
                     onFocus={e => e.target.select()}
+                    placeholder="0"
                     className="w-full bg-bg-card border border-border-custom rounded-md px-3 py-2 text-text-primary focus:border-[#0078D7] outline-none"
                   />
                 </div>
@@ -251,8 +255,13 @@ export default function NuevoPresupuesto() {
           />
 
           <div className="mt-8 bg-bg-subtle border border-border-custom rounded-lg p-6 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-xl text-text-secondary">
-              Total Cotizado: <span className="text-3xl font-bold text-amber-500 ml-2">{formData.moneda === "USD" ? "US$" : "$"} {total.toFixed(2)}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 md:gap-4">
+              <div className="text-xl text-text-secondary">
+                Total Cotizado: <span className="text-3xl font-bold text-amber-500 ml-2">{formData.moneda === "USD" ? "US$" : "$"} {total.toFixed(2)}</span>
+              </div>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-sm w-fit">
+                Precio final sin IMPUESTOS
+              </span>
             </div>
             <button
               type="submit"

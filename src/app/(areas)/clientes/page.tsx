@@ -63,6 +63,13 @@ export default function ClientesDashboard() {
   const [filtroPrioridad, setFiltroPrioridad] = useState("TODAS");
   const [filtroTipo, setFiltroTipo] = useState("TODOS");
 
+  const [paginaActual, setPaginaActual] = useState(1);
+  const itemsPorPagina = 50;
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda, filtroPrioridad, filtroTipo]);
+
   const esEmpresa = (c: any) => {
     const condicion = (c.condicionIva || "").toLowerCase();
     const razon = (c.razonSocial || "").toLowerCase();
@@ -136,6 +143,12 @@ export default function ClientesDashboard() {
 
     return matchesSearch && matchesPriority && matchesTipo;
   });
+
+  const totalPaginas = Math.ceil(clientesFiltrados.length / itemsPorPagina) || 1;
+  const clientesPaginados = clientesFiltrados.slice(
+    (paginaActual - 1) * itemsPorPagina,
+    paginaActual * itemsPorPagina
+  );
 
   // Filter general history
   const historyFiltrado = historyItems.filter(item => {
@@ -247,93 +260,93 @@ export default function ClientesDashboard() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 relative">
+    <div className="w-full relative flex-1 flex flex-col h-full min-h-0 overflow-hidden">
       
       {/* HEADER */}
-      <div className="flex justify-between items-end mb-6 flex-wrap gap-4">
+      <div className="flex justify-between items-end mb-4 flex-wrap gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-text-primary tracking-wide flex items-center gap-3 mb-2">
-            <Users className="text-[#0078D7] w-8 h-8" />
+          <h1 className="text-2xl font-bold text-text-primary tracking-wide flex items-center gap-3 mb-1">
+            <Users className="text-[#0078D7] w-7 h-7" />
             C. Clientes (Directorio Maestro)
           </h1>
-          <p className="text-text-muted">Gestione perfiles, equipos asignados, consumos y consulte el historial cronológico de movimientos.</p>
+          <p className="text-xs text-text-muted">Gestione perfiles, equipos asignados, consumos y consulte el historial cronológico de movimientos.</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => setIsXubioOpen(true)}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-md font-bold transition-all shadow-lg shadow-emerald-600/20 cursor-pointer"
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-xs font-bold transition-all shadow-md cursor-pointer"
           >
-            <RefreshCw className="w-5 h-5" />
+            <RefreshCw className="w-4 h-4" />
             Importar Xubio
           </button>
           <button
             onClick={() => { resetForm(); setIsCreateOpen(true); }}
-            className="flex items-center gap-2 bg-[#0078D7] hover:bg-[#005a9e] text-white px-5 py-3 rounded-md font-bold transition-all shadow-lg shadow-[#0078D7]/20 cursor-pointer"
+            className="flex items-center gap-2 bg-[#0078D7] hover:bg-[#005a9e] text-white px-4 py-2 rounded-md text-xs font-bold transition-all shadow-md cursor-pointer"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
             Registrar Cliente
           </button>
         </div>
       </div>
 
       {/* MINI DASHBOARD DE MÉTRICAS KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4 shrink-0">
         {/* Total Clientes */}
-        <div className="bg-bg-card p-5 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-[#0078D7]/60 transition-all">
+        <div className="bg-bg-card p-4 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-[#0078D7]/60 transition-all">
           <div>
-            <p className="text-text-muted text-[11px] font-bold uppercase tracking-wider mb-1">Total Clientes</p>
-            <h3 className="text-3xl font-extrabold text-text-primary">{totalClientes.toLocaleString("es-AR")}</h3>
+            <p className="text-text-muted text-[10px] font-bold uppercase tracking-wider mb-0.5">Total Clientes</p>
+            <h3 className="text-2xl font-extrabold text-text-primary">{totalClientes.toLocaleString("es-AR")}</h3>
           </div>
-          <div className="w-12 h-12 bg-[#0078D7]/10 text-[#0078D7] rounded-xl flex items-center justify-center border border-[#0078D7]/20">
-            <Users className="w-6 h-6" />
+          <div className="w-10 h-10 bg-[#0078D7]/10 text-[#0078D7] rounded-lg flex items-center justify-center border border-[#0078D7]/20">
+            <Users className="w-5 h-5" />
           </div>
         </div>
 
         {/* Empresas / PymEs */}
-        <div className="bg-bg-card p-5 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-emerald-500/60 transition-all">
+        <div className="bg-bg-card p-4 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-emerald-500/60 transition-all">
           <div>
-            <p className="text-text-muted text-[11px] font-bold uppercase tracking-wider mb-1">Empresas / PymEs</p>
-            <h3 className="text-3xl font-extrabold text-emerald-400">{empresasCount.toLocaleString("es-AR")}</h3>
+            <p className="text-text-muted text-[10px] font-bold uppercase tracking-wider mb-0.5">Empresas / PymEs</p>
+            <h3 className="text-2xl font-extrabold text-emerald-400">{empresasCount.toLocaleString("es-AR")}</h3>
           </div>
-          <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center border border-emerald-500/20">
-            <Building2 className="w-6 h-6" />
+          <div className="w-10 h-10 bg-emerald-500/10 text-emerald-400 rounded-lg flex items-center justify-center border border-emerald-500/20">
+            <Building2 className="w-5 h-5" />
           </div>
         </div>
 
         {/* Clientes Finales */}
-        <div className="bg-bg-card p-5 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-purple-500/60 transition-all">
+        <div className="bg-bg-card p-4 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-purple-500/60 transition-all">
           <div>
-            <p className="text-text-muted text-[11px] font-bold uppercase tracking-wider mb-1">Clientes Finales</p>
-            <h3 className="text-3xl font-extrabold text-purple-400">{clientesFinalesCount.toLocaleString("es-AR")}</h3>
+            <p className="text-text-muted text-[10px] font-bold uppercase tracking-wider mb-0.5">Clientes Finales</p>
+            <h3 className="text-2xl font-extrabold text-purple-400">{clientesFinalesCount.toLocaleString("es-AR")}</h3>
           </div>
-          <div className="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center border border-purple-500/20">
-            <UserCheck className="w-6 h-6" />
+          <div className="w-10 h-10 bg-purple-500/10 text-purple-400 rounded-lg flex items-center justify-center border border-purple-500/20">
+            <UserCheck className="w-5 h-5" />
           </div>
         </div>
 
         {/* Equipos Activos */}
-        <div className="bg-bg-card p-5 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-indigo-500/60 transition-all">
+        <div className="bg-bg-card p-4 rounded-xl border border-border-custom shadow-md flex items-center justify-between hover:border-indigo-500/60 transition-all">
           <div>
-            <p className="text-text-muted text-[11px] font-bold uppercase tracking-wider mb-1">Equipos Activos</p>
-            <h3 className="text-3xl font-extrabold text-indigo-400">{equiposTotalesActivos.toLocaleString("es-AR")}</h3>
+            <p className="text-text-muted text-[10px] font-bold uppercase tracking-wider mb-0.5">Equipos Activos</p>
+            <h3 className="text-2xl font-extrabold text-indigo-400">{equiposTotalesActivos.toLocaleString("es-AR")}</h3>
           </div>
-          <div className="w-12 h-12 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center border border-indigo-500/20">
-            <Server className="w-6 h-6" />
+          <div className="w-10 h-10 bg-indigo-500/10 text-indigo-400 rounded-lg flex items-center justify-center border border-indigo-500/20">
+            <Server className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* TABS */}
-      <div className="flex border-b border-border-custom mb-6">
+      <div className="flex border-b border-border-custom mb-4 shrink-0">
         <button 
           onClick={() => setActiveTab("directorio")}
-          className={`px-6 py-3 font-semibold text-sm tracking-wider uppercase transition-colors cursor-pointer ${activeTab === 'directorio' ? 'text-[#0078D7] border-b-2 border-[#0078D7]' : 'text-text-muted hover:text-text-primary'}`}
+          className={`px-5 py-2.5 font-semibold text-xs tracking-wider uppercase transition-colors cursor-pointer ${activeTab === 'directorio' ? 'text-[#0078D7] border-b-2 border-[#0078D7]' : 'text-text-muted hover:text-text-primary'}`}
         >
           Directorio de Clientes
         </button>
         <button 
           onClick={() => setActiveTab("historial")}
-          className={`px-6 py-3 font-semibold text-sm tracking-wider uppercase transition-colors flex items-center gap-2 cursor-pointer ${activeTab === 'historial' ? 'text-[#0078D7] border-b-2 border-[#0078D7]' : 'text-text-muted hover:text-text-primary'}`}
+          className={`px-5 py-2.5 font-semibold text-xs tracking-wider uppercase transition-colors flex items-center gap-2 cursor-pointer ${activeTab === 'historial' ? 'text-[#0078D7] border-b-2 border-[#0078D7]' : 'text-text-muted hover:text-text-primary'}`}
         >
           <History className="w-4 h-4" />
           Historial General de Actividades
@@ -342,42 +355,42 @@ export default function ClientesDashboard() {
 
       {/* FEEDBACK BANNERS */}
       {successMsg && (
-        <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg flex items-center gap-3 animate-fade-in animate-duration-200">
-          <CheckCircle className="w-5 h-5 shrink-0" />
-          <span className="text-sm font-medium">{successMsg}</span>
+        <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg flex items-center gap-3 animate-fade-in animate-duration-200 shrink-0">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          <span className="text-xs font-medium">{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg flex items-center gap-3 animate-fade-in animate-duration-200">
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <span className="text-sm font-medium">{errorMsg}</span>
+        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg flex items-center gap-3 animate-fade-in animate-duration-200 shrink-0">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span className="text-xs font-medium">{errorMsg}</span>
         </div>
       )}
 
       {/* TAB 1: LISTADO DE CLIENTES */}
       {activeTab === "directorio" && (
-        <div className="bg-bg-card rounded-xl shadow-lg border border-border-custom overflow-hidden">
+        <div className="bg-bg-card rounded-xl shadow-lg border border-border-custom overflow-hidden flex-1 flex flex-col min-h-0">
           {/* Search Bar */}
-          <div className="p-6 border-b border-border-custom bg-bg-subtle flex flex-col md:flex-row gap-4 items-center">
+          <div className="p-4 border-b border-border-custom bg-bg-subtle flex flex-col md:flex-row gap-4 items-center shrink-0">
             <div className="relative flex-1 w-full">
-              <Search className="w-5 h-5 absolute left-3 top-3.5 text-gray-500" />
+              <Search className="w-4 h-4 absolute left-3 top-3 text-gray-500" />
               <input
                 type="text"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                className="w-full bg-bg-card border border-border-custom rounded-md pl-10 pr-4 py-3 text-text-primary placeholder-gray-500 focus:border-[#0078D7] outline-none transition-colors text-sm"
+                className="w-full bg-bg-card border border-border-custom rounded-md pl-9 pr-4 py-2.5 text-text-primary placeholder-gray-500 focus:border-[#0078D7] outline-none transition-colors text-xs"
                 placeholder="Buscar por Razón Social, CUIT, Email o Ubicación..."
               />
             </div>
             
             <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-end flex-wrap sm:flex-nowrap">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-text-muted font-bold uppercase tracking-wider whitespace-nowrap">Tipo:</span>
+                <span className="text-[11px] text-text-muted font-bold uppercase tracking-wider whitespace-nowrap">Tipo:</span>
                 <select
                   value={filtroTipo}
                   onChange={(e) => setFiltroTipo(e.target.value)}
-                  className={`px-3 py-2.5 rounded-md border font-bold uppercase cursor-pointer outline-none bg-bg-card text-xs border-border-custom ${
+                  className={`px-3 py-2 rounded-md border font-bold uppercase cursor-pointer outline-none bg-bg-card text-xs border-border-custom ${
                     filtroTipo === "EMPRESAS" ? "text-emerald-400 border-emerald-500/30" :
                     filtroTipo === "FINALES" ? "text-purple-400 border-purple-500/30" :
                     "text-text-primary"
@@ -390,11 +403,11 @@ export default function ClientesDashboard() {
               </div>
 
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-text-muted font-bold uppercase tracking-wider whitespace-nowrap">Prioridad:</span>
+                <span className="text-[11px] text-text-muted font-bold uppercase tracking-wider whitespace-nowrap">Prioridad:</span>
                 <select
                   value={filtroPrioridad}
                   onChange={(e) => setFiltroPrioridad(e.target.value)}
-                  className={`px-3 py-2.5 rounded-md border font-bold uppercase cursor-pointer outline-none bg-bg-card text-xs border-border-custom ${
+                  className={`px-3 py-2 rounded-md border font-bold uppercase cursor-pointer outline-none bg-bg-card text-xs border-border-custom ${
                     filtroPrioridad === "ALTA" ? "text-rose-500 border-rose-500/30" :
                     filtroPrioridad === "MEDIA" ? "text-amber-500 border-amber-500/30" :
                     filtroPrioridad === "BAJA" ? "text-emerald-500 border-emerald-500/30" :
@@ -410,8 +423,8 @@ export default function ClientesDashboard() {
             </div>
           </div>
 
-          {/* Clients List */}
-          <div className="divide-y divide-border-custom">
+          {/* Clients List (Scrollable Area) */}
+          <div className="divide-y divide-border-custom flex-1 overflow-y-auto min-h-0">
             {loading ? (
               <div className="p-12 text-center text-text-muted">Cargando clientes...</div>
             ) : clientesFiltrados.length === 0 ? (
@@ -419,11 +432,11 @@ export default function ClientesDashboard() {
                 No se encontraron clientes en el sistema.
               </div>
             ) : (
-              clientesFiltrados.map((cliente) => (
-                <div key={cliente.id} className="p-6 hover:bg-bg-subtle/50 transition-colors flex flex-col md:flex-row items-center justify-between gap-6">
+              clientesPaginados.map((cliente) => (
+                <div key={cliente.id} className="p-5 hover:bg-bg-subtle/50 transition-colors flex flex-col md:flex-row items-center justify-between gap-6">
                   
                   <div className="flex-1 min-w-0 text-left w-full">
-                    <h3 className="text-xl font-bold text-text-primary tracking-wide mb-1 truncate">{cliente.razonSocial}</h3>
+                    <h3 className="text-lg font-bold text-text-primary tracking-wide mb-1 truncate">{cliente.razonSocial}</h3>
                     <div className="flex items-center gap-2 flex-wrap text-xs">
                       <p className="text-text-muted font-mono font-bold">{cliente.tipoIdentificacion || 'CUIT'}: {cliente.cuit}</p>
                       {cliente.condicionIva && (
@@ -447,21 +460,21 @@ export default function ClientesDashboard() {
                   </div>
 
                   <div className="flex gap-4 shrink-0 flex-wrap sm:flex-nowrap w-full md:w-auto justify-start md:justify-end">
-                    <div className="flex items-center gap-3 bg-bg-subtle px-4 py-2 rounded-lg border border-border-custom">
-                      <Server className="w-5 h-5 text-indigo-400" />
+                    <div className="flex items-center gap-3 bg-bg-subtle px-3.5 py-1.5 rounded-lg border border-border-custom">
+                      <Server className="w-4 h-4 text-indigo-400" />
                       <div className="text-left">
                         <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Equipos</p>
-                        <p className="text-text-primary font-bold text-sm">
-                          {cliente.equiposActivos} <span className="text-xs font-normal text-text-muted">activos</span>
+                        <p className="text-text-primary font-bold text-xs">
+                          {cliente.equiposActivos} <span className="text-[10px] font-normal text-text-muted">activos</span>
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 bg-bg-subtle px-4 py-2 rounded-lg border border-border-custom">
-                      <Activity className="w-5 h-5 text-emerald-400" />
+                    <div className="flex items-center gap-3 bg-bg-subtle px-3.5 py-1.5 rounded-lg border border-border-custom">
+                      <Activity className="w-4 h-4 text-emerald-400" />
                       <div className="text-left">
                         <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Tráfico (GB)</p>
-                        <p className="text-text-primary font-bold text-sm">
-                          {cliente.gigasUsados} <span className="text-xs font-normal text-text-muted">/ {cliente.gigasTotales} GB</span>
+                        <p className="text-text-primary font-bold text-xs">
+                          {cliente.gigasUsados} <span className="text-[10px] font-normal text-text-muted">/ {cliente.gigasTotales} GB</span>
                         </p>
                       </div>
                     </div>
@@ -470,7 +483,7 @@ export default function ClientesDashboard() {
                   <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end">
                     <Link 
                       href={`/clientes/${cliente.id}`} 
-                      className="flex items-center gap-2 bg-[#0078D7]/10 hover:bg-[#0078D7] text-[#0078D7] hover:text-white px-5 py-2.5 rounded-md font-bold transition-all border border-[#0078D7]/30 hover:border-transparent text-sm"
+                      className="flex items-center gap-2 bg-[#0078D7]/10 hover:bg-[#0078D7] text-[#0078D7] hover:text-white px-4 py-2 rounded-md font-bold transition-all border border-[#0078D7]/30 hover:border-transparent text-xs"
                     >
                       Ver Perfil
                       <ChevronRight className="w-4 h-4" />
@@ -478,7 +491,7 @@ export default function ClientesDashboard() {
 
                     <button
                       onClick={() => setDeletingId(cliente.id)}
-                      className="p-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 hover:border-transparent rounded-md transition-all cursor-pointer"
+                      className="p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 hover:border-transparent rounded-md transition-all cursor-pointer"
                       title="Eliminar cliente y registros"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -489,22 +502,53 @@ export default function ClientesDashboard() {
               ))
             )}
           </div>
+
+          {/* Footer Bar con Paginación */}
+          <div className="p-3.5 border-t border-border-custom bg-bg-subtle flex flex-col sm:flex-row justify-between items-center gap-3 text-xs font-semibold text-text-muted shrink-0">
+            <div>
+              Mostrando <strong className="text-text-primary">
+                {clientesFiltrados.length > 0 ? (paginaActual - 1) * itemsPorPagina + 1 : 0} - {Math.min(paginaActual * itemsPorPagina, clientesFiltrados.length)}
+              </strong> de <strong className="text-text-primary">{clientesFiltrados.length.toLocaleString("es-AR")}</strong> clientes
+            </div>
+
+            {totalPaginas > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPaginaActual(p => Math.max(p - 1, 1))}
+                  disabled={paginaActual === 1}
+                  className="px-3 py-1.5 rounded bg-bg-card hover:bg-bg-subtle border border-border-custom disabled:opacity-40 font-bold transition-colors cursor-pointer text-text-primary"
+                >
+                  Anterior
+                </button>
+                <span className="text-text-primary px-2 font-mono">
+                  Página <strong>{paginaActual}</strong> / {totalPaginas}
+                </span>
+                <button
+                  onClick={() => setPaginaActual(p => Math.min(p + 1, totalPaginas))}
+                  disabled={paginaActual === totalPaginas}
+                  className="px-3 py-1.5 rounded bg-bg-card hover:bg-bg-subtle border border-border-custom disabled:opacity-40 font-bold transition-colors cursor-pointer text-text-primary"
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* TAB 2: HISTORIAL CRONOLOGICO GENERAL */}
       {activeTab === "historial" && (
-        <div className="bg-bg-card rounded-xl shadow-lg border border-border-custom overflow-hidden animate-in fade-in duration-200">
+        <div className="bg-bg-card rounded-xl shadow-lg border border-border-custom overflow-hidden animate-in fade-in duration-200 flex-1 flex flex-col min-h-0">
           
           {/* Search Bar Historial */}
-          <div className="p-6 border-b border-border-custom bg-bg-subtle flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="p-4 sm:p-6 border-b border-border-custom bg-bg-subtle flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
             <div className="relative flex-1 w-full">
-              <Search className="w-5 h-5 absolute left-3 top-3.5 text-gray-500" />
+              <Search className="w-4 h-4 absolute left-3 top-3 text-gray-500" />
               <input
                 type="text"
                 value={busquedaHistorial}
                 onChange={(e) => setBusquedaHistorial(e.target.value)}
-                className="w-full bg-bg-card border border-border-custom rounded-md pl-10 pr-4 py-3 text-text-primary placeholder-gray-500 focus:border-[#0078D7] outline-none transition-colors"
+                className="w-full bg-bg-card border border-border-custom rounded-md pl-9 pr-4 py-2.5 text-text-primary placeholder-gray-500 focus:border-[#0078D7] outline-none transition-colors text-xs"
                 placeholder="Buscar por Cliente, CUIT/DNI, o Tipo de movimiento..."
               />
             </div>
@@ -512,7 +556,7 @@ export default function ClientesDashboard() {
               <button
                 onClick={handleClearHistory}
                 disabled={historyFiltrado.length === 0}
-                className="px-4 py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 shrink-0 disabled:opacity-40 cursor-pointer w-full sm:w-auto justify-center"
+                className="px-3.5 py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center gap-2 shrink-0 disabled:opacity-40 cursor-pointer w-full sm:w-auto justify-center"
               >
                 <Trash2 className="w-4 h-4" />
                 Borrar Historial
@@ -520,8 +564,8 @@ export default function ClientesDashboard() {
             )}
           </div>
 
-          {/* Timeline List */}
-          <div className="p-6">
+          {/* Timeline List (Scrollable Area) */}
+          <div className="p-6 flex-1 overflow-y-auto min-h-0">
             {loading ? (
               <div className="py-12 text-center text-text-muted">Cargando historial de movimientos...</div>
             ) : historyFiltrado.length === 0 ? (

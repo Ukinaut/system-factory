@@ -23,7 +23,7 @@ async function getSession() {
               session.correo ? { correo: session.correo } : undefined,
             ].filter(Boolean) as any,
           },
-          select: { id: true, nombre: true, correo: true, rol: true, telefono: true, fotoUrl: true, cargo: true }
+          include: { permissions: true }
         });
         if (liveUser) {
           session.id = liveUser.id;
@@ -33,6 +33,7 @@ async function getSession() {
           session.telefono = liveUser.telefono;
           session.fotoUrl = liveUser.fotoUrl;
           session.cargo = liveUser.cargo;
+          session.permissions = liveUser.permissions.map(p => p.areaPermitida);
         }
       } catch (err) {
         console.error("Error fetching liveUser in getSession:", err);
@@ -292,7 +293,8 @@ export async function getCurrentUserSession() {
 export async function getAuditLogs() {
   try {
     const session = await getSession();
-    if (!session || session.rol !== "ADMIN") {
+    const isAdmin = session?.rol === "ADMIN" || (Array.isArray(session?.permissions) && session.permissions.includes("ADMIN"));
+    if (!session || !isAdmin) {
       return { success: false, error: "No autorizado." };
     }
 
@@ -321,7 +323,8 @@ export async function getAuditLogs() {
 export async function clearAuditLogs() {
   try {
     const session = await getSession();
-    if (!session || session.rol !== "ADMIN") {
+    const isAdmin = session?.rol === "ADMIN" || (Array.isArray(session?.permissions) && session.permissions.includes("ADMIN"));
+    if (!session || !isAdmin) {
       return { success: false, error: "No autorizado." };
     }
 

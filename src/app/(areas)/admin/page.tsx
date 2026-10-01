@@ -5,7 +5,51 @@ import { getRecycleBinItems } from "@/actions/recycleBin";
 import AdminDashboardClient from "./AdminDashboardClient";
 import ActivityLogSection from "./ActivityLogSection";
 
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+
 export default async function AdminDashboard() {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get("sessionToken")?.value;
+  if (!sessionToken) {
+    redirect("/login");
+  }
+
+  let session: any = null;
+  try {
+    const decodedStr = Buffer.from(sessionToken, "base64").toString("utf-8");
+    session = JSON.parse(decodedStr);
+  } catch {
+    redirect("/login");
+  }
+
+  // Verificar en vivo si el usuario tiene rol de ADMIN o permiso de ADMIN
+  let isAdmin = session?.rol === "ADMIN" || (Array.isArray(session?.permissions) && session.permissions.includes("ADMIN"));
+  
+  if (session?.id || session?.correo) {
+    try {
+      const dbUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            session.id ? { id: session.id } : undefined,
+            session.correo ? { correo: session.correo } : undefined,
+          ].filter(Boolean) as any,
+        },
+        include: { permissions: true },
+      });
+      if (dbUser) {
+        isAdmin = dbUser.rol === "ADMIN" || dbUser.permissions.some(p => p.areaPermitida === "ADMIN");
+      }
+    } catch (err) {
+      console.error("Error validating admin permissions:", err);
+    }
+  }
+
+  if (!isAdmin) {
+    redirect("/");
+  }
+
   const [usersResult, countriesResult, statsResult, logsResult, recycleResult] = await Promise.all([
     getUsers(),
     getAllCountriesAdmin(),

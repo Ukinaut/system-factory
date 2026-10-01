@@ -13,9 +13,9 @@ export function proxy(request: NextRequest) {
 
   // Rutas públicas
   if (
-    path.startsWith("/login") ||
-    path.startsWith("/select-country") ||
-    path.startsWith("/api/public") ||
+    path.startsWith("/login") || 
+    path.startsWith("/select-country") || 
+    path.startsWith("/api/public") || 
     path.includes(".")
   ) {
     if (token && path.startsWith("/login")) {

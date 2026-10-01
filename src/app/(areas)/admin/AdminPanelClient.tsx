@@ -52,6 +52,7 @@ const ROLES_DISPONIBLES = [
 ];
 
 const AREAS_DISPONIBLES = [
+  { id: "ADMIN", name: "Administrador (Panel Admin)" },
   { id: "VENTAS", name: "Ventas" },
   { id: "VENTAS_GENERALES", name: "Ventas Generales" },
   { id: "TIENDA", name: "Tienda (API)" },

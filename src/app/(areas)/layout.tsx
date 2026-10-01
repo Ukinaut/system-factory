@@ -60,23 +60,23 @@ export default async function AreasLayout({ children }: { children: React.ReactN
       <Sidebar session={sessionData} selectedCountry={selectedCountry} />
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Top Header */}
-        <header className="h-16 border-b border-border-custom bg-bg-card flex items-center justify-between px-8 z-10 shrink-0">
-          <div className="text-sm font-semibold text-text-muted">
+        <header className="h-16 border-b border-border-custom bg-bg-card flex items-center justify-between px-4 sm:px-8 z-10 shrink-0 pl-16 md:pl-8">
+          <div className="text-xs sm:text-sm font-semibold text-text-muted truncate max-w-[150px] sm:max-w-none">
             Bienvenido, <span className="text-text-primary font-bold">{sessionData.nombre}</span>
           </div>
-          <div className="flex items-center gap-6">
-            <nav className="flex items-center gap-6 border-r border-border-custom pr-6">
-              <Link href="/perfil" className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors">
-                <User className="w-4.5 h-4.5" />
-                <span>Perfil</span>
+          <div className="flex items-center gap-3 sm:gap-6">
+            <nav className="flex items-center gap-3 sm:gap-6 border-r border-border-custom pr-3 sm:pr-6">
+              <Link href="/perfil" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-text-muted hover:text-text-primary transition-colors">
+                <User className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                <span className="hidden sm:inline">Perfil</span>
               </Link>
-              <Link href="/calendario" className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors">
-                <Calendar className="w-4.5 h-4.5" />
-                <span>Calendario</span>
+              <Link href="/calendario" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-text-muted hover:text-text-primary transition-colors">
+                <Calendar className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                <span className="hidden sm:inline">Calendario</span>
               </Link>
-              <Link href="/chat" className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors">
-                <MessageSquare className="w-4.5 h-4.5" />
-                <span>Chat</span>
+              <Link href="/chat" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-text-muted hover:text-text-primary transition-colors">
+                <MessageSquare className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                <span className="hidden sm:inline">Chat</span>
               </Link>
             </nav>
             <CurrencyRatesDropdown />
@@ -85,7 +85,7 @@ export default async function AreasLayout({ children }: { children: React.ReactN
         </header>
 
         {/* Scrollable Main Area */}
-        <main className="flex-1 p-8 overflow-y-auto bg-bg-main">
+        <main className="flex-1 p-4 sm:p-8 overflow-y-auto bg-bg-main">
           {children}
         </main>
       </div>

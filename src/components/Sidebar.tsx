@@ -1,6 +1,8 @@
 "use client";
+
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   ShieldCheck, 
   ShoppingCart, 
@@ -18,13 +20,13 @@ import {
   ShoppingBag,
   FileCheck,
   Globe,
-  Store
+  Store,
+  Menu,
+  X
 } from "lucide-react";
 import { logoutAction } from "@/actions/auth";
 import { clearSelectedCountryAction } from "@/actions/countries";
 import ThemeToggle from "./ThemeToggle";
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
 
 const getFlagUrl = (code: string) => {
   const cleanCode = code.trim().toLowerCase();
@@ -66,9 +68,15 @@ export default function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const rol = session?.rol || "OPERATOR";
   const nombre = session?.nombre || "Usuario Invitado";
+
+  // Cerrar menú desplegable móvil cuando cambie de ruta
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
 
   const handleChangeCountry = () => {
     startTransition(async () => {
@@ -92,21 +100,32 @@ export default function Sidebar({
 
   const flagUrl = selectedCountry ? getFlagUrl(selectedCountry) : null;
 
-  return (
-    <aside className="w-80 bg-bg-sidebar text-text-secondary min-h-screen flex flex-col border-r border-border-custom transition-all duration-200">
+  const sidebarContent = (
+    <div className="flex flex-col h-full bg-bg-sidebar text-text-secondary border-r border-border-custom w-80">
+      {/* Encabezado del Menú */}
       <div className="p-6 flex items-center justify-between border-b border-border-custom gap-2 shrink-0">
         <div className="flex items-center gap-3">
           <img 
             src="/logo.png" 
             alt="Aitue Cominca S.A. Logo" 
-            className="w-11 h-11 object-contain rounded shrink-0" 
+            className="w-10 h-10 object-contain rounded shrink-0" 
           />
           <div>
-            <h1 className="text-lg font-bold tracking-wide text-text-primary leading-tight">Aitue Cominca S.A.</h1>
+            <h1 className="text-base font-bold tracking-wide text-text-primary leading-tight">Aitue Cominca S.A.</h1>
             <p className="text-xs text-[#0078D7] font-bold uppercase tracking-widest">{rol}</p>
           </div>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {/* Botón de cierre para versión móvil */}
+          <button 
+            onClick={() => setIsMobileOpen(false)}
+            className="md:hidden p-2 text-text-muted hover:text-text-primary rounded-lg hover:bg-bg-subtle transition-colors cursor-pointer"
+            aria-label="Cerrar menú"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Indicador de País */}
@@ -134,7 +153,7 @@ export default function Sidebar({
         </div>
       )}
 
-
+      {/* Lista de Navegación */}
       <nav className="flex-1 overflow-y-auto py-6">
         <ul className="space-y-1.5 px-4">
           {allowedAreas.map((area) => {
@@ -144,9 +163,10 @@ export default function Sidebar({
               <li key={area.path}>
                 <Link 
                   href={area.path}
-                  className={`flex items-center gap-4 px-4 py-3.5 rounded-md transition-all duration-200 ${isActive ? 'bg-[#0078D7] text-white shadow-md font-bold' : 'hover:bg-bg-subtle hover:text-text-primary'}`}
+                  onClick={() => setIsMobileOpen(false)}
+                  className={`flex items-center gap-4 px-4 py-3.5 rounded-md transition-all duration-200 ${isActive ? 'bg-[#0078D7] text-white shadow-md font-bold' : 'hover:bg-bg-subtle hover:text-[#0078D7]'}`}
                 >
-                  <Icon className="w-5.5 h-5.5 shrink-0" />
+                  <Icon className="w-5 h-5 shrink-0" />
                   <span className="font-semibold text-base tracking-wide">{area.name}</span>
                 </Link>
               </li>
@@ -155,7 +175,8 @@ export default function Sidebar({
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-border-custom bg-bg-subtle">
+      {/* Pie de Usuario y Cierre de Sesión */}
+      <div className="p-4 border-t border-border-custom bg-bg-subtle shrink-0">
         <div className="flex items-center gap-3 mb-4 px-2">
           <div className="w-10 h-10 bg-bg-card rounded-full flex items-center justify-center border border-border-custom overflow-hidden shrink-0 shadow-sm">
             {session?.fotoUrl ? (
@@ -176,6 +197,37 @@ export default function Sidebar({
           </button>
         </form>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Botón activador Hamburguesa en pantallas móviles */}
+      <button
+        onClick={() => setIsMobileOpen(true)}
+        className="md:hidden fixed top-3 left-4 z-30 p-2.5 bg-bg-card border border-border-custom text-text-primary rounded-xl shadow-lg hover:border-[#0078D7] active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+        aria-label="Abrir menú de navegación"
+      >
+        <Menu className="w-5 h-5 text-[#0078D7]" />
+      </button>
+
+      {/* Fondo oscuro traslúcido para menú desplegable en móvil */}
+      {isMobileOpen && (
+        <div 
+          onClick={() => setIsMobileOpen(false)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
+        />
+      )}
+
+      {/* Drawer desplegable móvil */}
+      <aside className={`fixed inset-y-0 left-0 z-50 transform md:hidden transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        {sidebarContent}
+      </aside>
+
+      {/* Sidebar fijo en escritorio */}
+      <aside className="hidden md:flex h-screen sticky top-0 shrink-0 z-20">
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

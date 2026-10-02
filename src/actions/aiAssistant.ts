@@ -517,6 +517,39 @@ export async function deleteAiConversation(conversationId: string) {
   }
 }
 
+// 4.b Limpiar todas las conversaciones del usuario (o todas si es Admin)
+export async function clearAllUserAiConversations() {
+  try {
+    const session = await getSession();
+    if (!session) return { success: false, error: "Usuario no autenticado." };
+
+    const where = session.rol === "ADMIN" ? {} : { userId: session.id };
+    
+    const userConvs = await prisma.aiConversation.findMany({
+      where,
+      select: { id: true }
+    });
+
+    const convIds = userConvs.map(c => c.id);
+
+    if (convIds.length > 0) {
+      await prisma.aiMessage.deleteMany({
+        where: { conversationId: { in: convIds } }
+      });
+
+      await prisma.aiConversation.deleteMany({
+        where: { id: { in: convIds } }
+      });
+    }
+
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error clearing conversations:", error);
+    return { success: false, error: "Error al limpiar el historial del chat." };
+  }
+}
+
 // 5. Enviar mensaje a la IA y procesar respuesta con Function Calling y RBAC
 export async function sendAiMessage(data: { conversationId?: string; prompt: string }) {
   try {

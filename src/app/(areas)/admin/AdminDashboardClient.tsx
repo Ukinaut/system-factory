@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, startTransition } from "react";
-import { Users, Globe, LayoutDashboard } from "lucide-react";
+import { Users, Globe, LayoutDashboard, Bot } from "lucide-react";
 import AdminPanelClient from "./AdminPanelClient";
 import CountryManager from "./CountryManager";
 import AdminDashboardOverview from "./AdminDashboardOverview";
+import AiAssistantManager from "./AiAssistantManager";
 import { getDashboardStats } from "@/actions/dashboard";
 
 export default function AdminDashboardClient({
@@ -18,7 +19,7 @@ export default function AdminDashboardClient({
   initialStats: any;
   initialRecycleItems?: any[];
 }) {
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "countries">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "countries" | "ai">("overview");
   const [stats, setStats] = useState(initialStats);
 
   const handleRefreshStats = async () => {
@@ -65,6 +66,17 @@ export default function AdminDashboardClient({
           <Globe className="w-4 h-4" />
           Gestión de Países / Regiones
         </button>
+        <button
+          onClick={() => setActiveTab("ai")}
+          className={`flex items-center gap-2 px-6 py-3 border-b-2 font-medium text-sm transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            activeTab === "ai"
+              ? "border-[#0078D7] text-text-primary bg-white/2"
+              : "border-transparent text-text-muted hover:text-text-primary"
+          }`}
+        >
+          <Bot className="w-4 h-4 text-[#0078D7]" />
+          Asistentes
+        </button>
       </div>
 
       <div className="transition-all duration-300">
@@ -76,6 +88,9 @@ export default function AdminDashboardClient({
         )}
         {activeTab === "countries" && (
           <CountryManager initialCountries={initialCountries} />
+        )}
+        {activeTab === "ai" && (
+          <AiAssistantManager />
         )}
       </div>
     </div>

@@ -289,12 +289,26 @@ export async function deletePurchaseRequest(id: string) {
       return { success: false, error: "Solicitud no encontrada." };
     }
 
+    const invoiceId = request.purchaseInvoiceId;
+
     await prisma.purchaseRequest.delete({
       where: { id }
     });
 
+    if (invoiceId) {
+      const remainingCount = await prisma.purchaseRequest.count({
+        where: { purchaseInvoiceId: invoiceId }
+      });
+      if (remainingCount === 0) {
+        await prisma.purchaseInvoice.delete({
+          where: { id: invoiceId }
+        }).catch(() => {});
+      }
+    }
+
     revalidatePath("/orden-compra");
     revalidatePath("/compras");
+    revalidatePath("/admin");
     return { success: true };
   } catch (error: any) {
     console.error("Error deleting purchase request:", error);
@@ -392,6 +406,7 @@ export async function createPurchaseInvoice(data: {
 
     revalidatePath("/orden-compra");
     revalidatePath("/compras");
+    revalidatePath("/admin");
     return { success: true, invoice };
   } catch (error: any) {
     console.error("Error creating purchase invoice:", error);
@@ -405,6 +420,15 @@ export async function getPurchaseInvoices() {
     if (!session) {
       return { success: false, error: "Usuario no autenticado." };
     }
+
+    // Clean up any orphaned invoices that have no associated requests
+    await prisma.purchaseInvoice.deleteMany({
+      where: {
+        requests: {
+          none: {}
+        }
+      }
+    }).catch(() => {});
 
     const invoices = await prisma.purchaseInvoice.findMany({
       include: {
@@ -459,6 +483,7 @@ export async function deletePurchaseInvoice(id: string) {
 
     revalidatePath("/compras");
     revalidatePath("/orden-compra");
+    revalidatePath("/admin");
     return { success: true };
   } catch (error: any) {
     console.error("Error deleting purchase invoice:", error);

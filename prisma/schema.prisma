@@ -32,6 +32,7 @@ model User {
   notifications    Notification[]
   purchaseRequests PurchaseRequest[]
   saleObservations SaleObservation[]
+  aiConversations  AiConversation[]
 }
 
 model OperatorPermission {
@@ -315,6 +316,7 @@ model Product {
   alertaMinima   Int
   alertaCritica  Int
   caracteristicas String?
+  imagenUrl       String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -518,6 +520,29 @@ model RecycleBinItem {
   payload         String   // JSON Snapshot serialized
   deletedAt       DateTime @default(now())
 }
+
+model AiConversation {
+  id        String      @id @default(uuid())
+  userId    String
+  title     String      @default("Nueva conversación")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AiMessage[]
+}
+
+model AiMessage {
+  id             String         @id @default(uuid())
+  conversationId String
+  sender         String         // "user" | "assistant" | "system" | "tool"
+  content        String
+  toolCalls      String?        // JSON string de llamadas o resultados de herramientas
+  createdAt      DateTime       @default(now())
+
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
 
 
 

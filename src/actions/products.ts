@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
+import fs from "fs";
+import path from "path";
+
 async function getSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get("sessionToken")?.value;
@@ -177,6 +180,9 @@ export async function createProduct(data: {
   alertaCritica: number;
   caracteristicas?: string;
   countryId?: string;
+  imagenUrl?: string;
+  imagenBase64?: string;
+  imagenFileName?: string;
 }) {
   try {
     const cookieStore = await cookies();
@@ -190,6 +196,20 @@ export async function createProduct(data: {
       finalCountryId = currentCountry?.id;
     }
 
+    let finalImagenUrl = data.imagenUrl || null;
+    if (data.imagenBase64 && data.imagenFileName) {
+      const uploadsDir = path.join(process.cwd(), "public", "uploads", "products");
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      const ext = path.extname(data.imagenFileName) || ".jpg";
+      const filename = `prod_${Date.now()}${ext}`;
+      const filePath = path.join(uploadsDir, filename);
+      const base64Data = data.imagenBase64.replace(/^data:.*?;base64,/, "");
+      fs.writeFileSync(filePath, Buffer.from(base64Data, "base64"));
+      finalImagenUrl = `/uploads/products/${filename}`;
+    }
+
     const product = await prisma.product.create({
       data: {
         tipo: data.tipo,
@@ -198,6 +218,7 @@ export async function createProduct(data: {
         alertaMinima: Number(data.alertaMinima),
         alertaCritica: Number(data.alertaCritica),
         caracteristicas: data.caracteristicas || null,
+        imagenUrl: finalImagenUrl,
         countryId: finalCountryId || null,
       },
     });
@@ -218,14 +239,33 @@ export async function updateProduct(data: {
   alertaCritica: number;
   caracteristicas?: string;
   countryId?: string;
+  imagenUrl?: string | null;
+  imagenBase64?: string;
+  imagenFileName?: string;
 }) {
   try {
+    let finalImagenUrl = data.imagenUrl;
+
+    if (data.imagenBase64 && data.imagenFileName) {
+      const uploadsDir = path.join(process.cwd(), "public", "uploads", "products");
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      const ext = path.extname(data.imagenFileName) || ".jpg";
+      const filename = `prod_${Date.now()}${ext}`;
+      const filePath = path.join(uploadsDir, filename);
+      const base64Data = data.imagenBase64.replace(/^data:.*?;base64,/, "");
+      fs.writeFileSync(filePath, Buffer.from(base64Data, "base64"));
+      finalImagenUrl = `/uploads/products/${filename}`;
+    }
+
     const updateData: any = {
       nombre: data.nombre,
       tipo: data.tipo,
       alertaMinima: Number(data.alertaMinima),
       alertaCritica: Number(data.alertaCritica),
       caracteristicas: data.caracteristicas || null,
+      imagenUrl: finalImagenUrl !== undefined ? finalImagenUrl : undefined,
     };
 
     if (data.countryId && data.countryId !== "Todos") {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Layers, Search, AlertTriangle, AlertOctagon, Plus, PackageOpen, Edit2, ImageIcon, ArrowDownRight, ArrowUpRight, TrendingDown, ChevronDown, ChevronRight, X, Save, ArrowDownUp, Trash2 } from "lucide-react";
+import { Layers, Search, AlertTriangle, AlertOctagon, Plus, PackageOpen, Edit2, ImageIcon, ArrowDownRight, ArrowUpRight, TrendingDown, ChevronDown, ChevronRight, X, Save, ArrowDownUp, Trash2, Upload } from "lucide-react";
 import { getProducts, createProduct, updateProduct, adjustProductStock, getStockLogs, deleteProduct } from "@/actions/products";
 import { getCountries, getSelectedCountry } from "@/actions/countries";
 
@@ -47,7 +47,7 @@ export default function StockDashboard() {
           cantidad: p.cantidad,
           alertaMinima: p.alertaMinima,
           alertaCritica: p.alertaCritica,
-          foto: null,
+          foto: p.imagenUrl || null,
           caracteristicas: p.caracteristicas || (p.tipo === "PRODUCTO_FINAL" ? "Hardware y equipamiento para despliegue de telecomunicaciones satelitales." : "Accesorios y partes de reposición técnica."),
           country: p.country,
         }));
@@ -137,13 +137,44 @@ export default function StockDashboard() {
     setExpandedItem(expandedItem === id ? null : id);
   };
 
+  const handleProductImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFormEdit((prev: any) => ({ ...prev, imagenFileName: file.name }));
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormEdit((prev: any) => ({ ...prev, imagenBase64: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const openModal = (type: "EDIT" | "ADJUST" | "CREATE", item?: any) => {
     setItemSeleccionado(item || null);
     setModalType(type);
     if (type === "EDIT") {
-      setFormEdit({ ...item, countryId: item.country?.id || "", caracteristicas: item.caracteristicas || "" });
+      setFormEdit({
+        ...item,
+        countryId: item.country?.id || "",
+        caracteristicas: item.caracteristicas || "",
+        imagenUrl: item.foto || null,
+        imagenBase64: "",
+        imagenFileName: ""
+      });
     } else if (type === "CREATE") {
-      setFormEdit({ nombre: "", categoria: "Producto Final", alertaMinima: 10, alertaCritica: 2, cantidad: 0, caracteristicas: "", countryId: selectedFilterCountryId !== "Todos" ? selectedFilterCountryId : "" });
+      setFormEdit({
+        nombre: "",
+        categoria: "Producto Final",
+        alertaMinima: 10,
+        alertaCritica: 2,
+        cantidad: 0,
+        caracteristicas: "",
+        countryId: selectedFilterCountryId !== "Todos" ? selectedFilterCountryId : "",
+        imagenUrl: null,
+        imagenBase64: "",
+        imagenFileName: ""
+      });
     } else {
       setFormAdjust({ tipo: "Entrada", cantidad: 1, justificacion: "", usuario: "Admin" });
     }
@@ -167,6 +198,9 @@ export default function StockDashboard() {
         alertaCritica: formEdit.alertaCritica,
         caracteristicas: formEdit.caracteristicas,
         countryId: formEdit.countryId,
+        imagenUrl: formEdit.imagenUrl,
+        imagenBase64: formEdit.imagenBase64,
+        imagenFileName: formEdit.imagenFileName,
       });
     } else {
       res = await updateProduct({
@@ -177,6 +211,9 @@ export default function StockDashboard() {
         alertaCritica: formEdit.alertaCritica,
         caracteristicas: formEdit.caracteristicas,
         countryId: formEdit.countryId,
+        imagenUrl: formEdit.imagenUrl,
+        imagenBase64: formEdit.imagenBase64,
+        imagenFileName: formEdit.imagenFileName,
       });
     }
 
@@ -673,6 +710,43 @@ export default function StockDashboard() {
                   className="w-full bg-bg-subtle border border-border-custom rounded-md px-4 py-2.5 text-text-primary focus:border-teal-500 outline-none min-h-[80px]"
                   placeholder="Detalles y características del producto..."
                 />
+              </div>
+
+              {/* Fotografía / Imagen del Artículo */}
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Fotografía / Imagen del Artículo</label>
+                <div className="flex items-center gap-4 bg-bg-subtle p-3 rounded-lg border border-border-custom">
+                  <div className="w-16 h-16 bg-bg-card rounded-md border border-border-custom flex items-center justify-center overflow-hidden shrink-0">
+                    {formEdit.imagenBase64 ? (
+                      <img src={formEdit.imagenBase64} alt="Preview" className="w-full h-full object-cover" />
+                    ) : formEdit.imagenUrl ? (
+                      <img src={formEdit.imagenUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="w-6 h-6 text-text-muted opacity-50" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <label className="inline-flex items-center justify-center gap-2 px-3 py-2 border border-dashed border-border-custom hover:border-teal-500 rounded-md bg-bg-card cursor-pointer transition-colors text-xs font-medium text-text-secondary hover:text-text-primary w-full text-center">
+                      <Upload className="w-4 h-4 text-teal-500" />
+                      <span className="truncate">{formEdit.imagenFileName ? formEdit.imagenFileName : (formEdit.imagenUrl ? "Cambiar imagen..." : "Subir imagen del producto")}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProductImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                    {(formEdit.imagenBase64 || formEdit.imagenUrl) && (
+                      <button
+                        type="button"
+                        onClick={() => setFormEdit((prev: any) => ({ ...prev, imagenUrl: null, imagenBase64: "", imagenFileName: "" }))}
+                        className="text-[11px] text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Quitar imagen
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {modalType === "CREATE" && (

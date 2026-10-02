@@ -84,9 +84,14 @@ export async function getDashboardStats() {
       }
     });
 
-    // 4. Invoices (facturas de compra finalizadas)
+    // 4. Invoices (facturas de compra finalizadas asociadas a solicitudes activas)
     const [purchaseInvoices, importInvoices] = await Promise.all([
       prisma.purchaseInvoice.findMany({
+        where: {
+          requests: {
+            some: {},
+          },
+        },
         select: {
           montoFinal: true,
           moneda: true,

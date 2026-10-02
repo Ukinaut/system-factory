@@ -5,6 +5,7 @@ import Link from "next/link";
 import { User, Calendar, MessageSquare } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import CurrencyRatesDropdown from "@/components/CurrencyRatesDropdown";
+import AiChatBubble from "@/components/AiChatBubble";
 import { prisma } from "@/lib/prisma";
 
 export default async function AreasLayout({ children }: { children: React.ReactNode }) {
@@ -85,8 +86,9 @@ export default async function AreasLayout({ children }: { children: React.ReactN
         </header>
 
         {/* Scrollable Main Area */}
-        <main className="flex-1 p-4 sm:p-8 overflow-y-auto bg-bg-main">
+        <main className="flex-1 p-4 sm:p-8 overflow-y-auto bg-bg-main relative">
           {children}
+          <AiChatBubble />
         </main>
       </div>
     </div>

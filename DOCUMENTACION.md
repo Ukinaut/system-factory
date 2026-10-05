@@ -131,6 +131,12 @@ graph TD
 ### K. Estado Pedidos (`/estado-pedidos`)
 * **Tablero de Control de Órdenes:** Vista unificada de los pedidos comerciales, permitiendo a todos los operadores conocer si una orden se encuentra en fase de facturación, empaque en depósito, en camino logístico o ya entregada.
 
+### L. Webmail Gmail & Google Workspace (`/correo`)
+* **Vinculación de Cuentas:** Permite a cada usuario autenticarse e iniciar sesión con su propia cuenta corporativa de Google mediante **Google OAuth 2.0** o contraseña de aplicación de 16 caracteres para SMTP/IMAP.
+* **Navegación Cómoda por Correos:** Filtros rápidos en bandeja (*Todos, Sin Leer, Destacados, Con Adjuntos*), buscador global por palabra clave y marcas masivas de lectura.
+* **Adjuntar Documentos y Archivos:** Formulario de redacción con soporte para adjuntar múltiples archivos (PDFs, planillas Excel, documentos Word e imágenes) en Base64 enviados mediante Nodemailer, así como lector y descargador interactivo de adjuntos recibidos.
+* **Asistente Virtual (Aitue AI) Integrado:** La IA cuenta con herramientas operativas (`search_user_emails` y `send_email_via_ai`) para buscar en la casilla del usuario, analizar adjuntos y redactar/enviar correos electrónicos a pedido desde el chat.
+
 ---
 
 ## 5. Cuentas de Acceso para Pruebas (Seeding Automático)

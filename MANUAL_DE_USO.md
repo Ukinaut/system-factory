@@ -394,6 +394,29 @@ Al hacer clic en cualquier tarjeta:
 
 ---
 
+### 4.16. Módulo Webmail Gmail & Google Workspace (`/correo`)
+
+Cliente de correo electrónico integrado y sincronizado con cuentas corporativas de Google.
+
+#### A. Vinculación con Google OAuth 2.0 y SMTP
+* **Sesión Autorizada:** Cada usuario puede vincular su propia casilla de Google Gmail mediante inicio de sesión OAuth 2.0 o clave de aplicación SMTP de 16 caracteres.
+* **Sesión Permanente:** Mantiene la casilla conectada de forma segura para enviar y recibir correos directamente desde la interfaz corporativa.
+
+#### B. Navegación Cómoda y Filtros Inteligentes
+* **Pestañas de Filtrado Rápido:** Alterna entre *Todos*, *Sin Leer*, *Destacados* y *Con Adjuntos* en un clic.
+* **Buscador en Tiempo Real:** Búsqueda instantánea por remitente, asunto, contenido de texto o presencia de archivos adjuntos.
+* **Acciones Múltiples:** Botón para marcar todos los mensajes como leídos y actualización instantánea de la bandeja.
+
+#### C. Envío y Lectura de Archivos Adjuntos
+* **Adjuntar Documentos:** Selector con soporte para arrastrar y soltar múltiples archivos (PDF, Excel, Word, imágenes) con cálculo automático de peso en KB/MB y envío en Base64.
+* **Visor y Descarga:** Sección *Archivos Adjuntos (N)* en la lectura de correos con íconos identificadores según el tipo de documento y botón de descarga directa.
+
+#### D. Integración con Aitue AI (Asistente Virtual)
+* **Búsqueda y Resumen:** Aitue AI puede consultar los correos del usuario (`search_user_emails`) para resumir mensajes o verificar documentos adjuntos.
+* **Redacción y Envío por Chat:** Permite pedir a Aitue AI que redacte y envíe un correo electrónico en nombre del usuario (`send_email_via_ai`).
+
+---
+
 ## 5. Circuitos Operativos Recomendados (Paso a Paso)
 
 ### Circuito 1: Flujo Completo de Venta y Entrega de Hardware Satelital

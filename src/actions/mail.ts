@@ -43,6 +43,14 @@ function saveStoredMailAccounts(data: Record<string, any>) {
   }
 }
 
+export interface AttachmentItem {
+  filename: string;
+  content: string; // Base64 or text content
+  contentType?: string;
+  encoding?: string;
+  size?: number;
+}
+
 const sentMailLogStore: any[] = [
   {
     id: "sent-demo-1",
@@ -54,7 +62,15 @@ const sentMailLogStore: any[] = [
     body: "Estimado cliente, adjuntamos la propuesta comercial solicitada para la provisión de terminales Starlink móviles. Quedamos a su disposición.",
     createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
     isRead: true,
-    folder: "SENT"
+    folder: "SENT",
+    attachments: [
+      {
+        filename: "Cotizacion_Starlink_COT8823192.pdf",
+        content: "JVBERi0xLjQK%", // dummy base64 sample
+        contentType: "application/pdf",
+        size: 245800
+      }
+    ]
   }
 ];
 
@@ -125,6 +141,18 @@ export async function saveGoogleOauthKeys(data: { clientId: string; clientSecret
   saveStoredMailAccounts(accounts);
   revalidatePath("/correo");
   return { success: true, message: "Claves de Google OAuth 2.0 guardadas correctamente." };
+}
+
+export async function getGoogleOauthKeysStatus() {
+  const accounts = readStoredMailAccounts();
+  const keys = accounts.__google_oauth_keys || {};
+  const clientId = process.env.GOOGLE_CLIENT_ID || keys.clientId;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || keys.clientSecret;
+  return {
+    hasKeys: Boolean(clientId && clientSecret),
+    clientId: clientId || "",
+    clientSecret: clientSecret || ""
+  };
 }
 
 export async function saveMailAccountSettings(data: {
@@ -224,9 +252,23 @@ export async function getMails() {
       createdAt: new Date(new Date(s.createdAt).getTime() + 1000 * 60 * 15).toISOString(),
       isRead: idx > 1,
       folder: "INBOX",
-      badge: s.tipo
+      badge: s.tipo,
+      attachments: idx === 0 ? [
+        {
+          filename: `Orden_${s.numeroOrden}_Especificacion.pdf`,
+          content: "JVBERi0xLjQK%",
+          contentType: "application/pdf",
+          size: 348200
+        },
+        {
+          filename: `Planilla_Requerimiento_Starlink.xlsx`,
+          content: "UEsDBBQACAgI%",
+          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          size: 112000
+        }
+      ] : undefined
     })),
-    ...clients.map(c => ({
+    ...clients.map((c, idx) => ({
       id: `inbox-client-${c.id}`,
       fromEmail: c.correo || "contacto@cliente.com",
       fromName: c.razonSocial,
@@ -236,7 +278,15 @@ export async function getMails() {
       createdAt: new Date(new Date(c.createdAt).getTime() + 1000 * 60 * 60).toISOString(),
       isRead: true,
       folder: "INBOX",
-      badge: "CLIENTE"
+      badge: "CLIENTE",
+      attachments: idx === 0 ? [
+        {
+          filename: `Constancia_CUIT_${c.cuit}.pdf`,
+          content: "JVBERi0xLjQK%",
+          contentType: "application/pdf",
+          size: 195400
+        }
+      ] : undefined
     }))
   ];
 
@@ -252,6 +302,7 @@ export async function sendMailAction(data: {
   subject: string;
   body: string;
   fromName?: string;
+  attachments?: AttachmentItem[];
 }) {
   try {
     const session = await getSession();
@@ -269,6 +320,16 @@ export async function sendMailAction(data: {
       senderInfo: { nombre: fromName, area: session.rol }
     });
 
+    // Format attachments for Nodemailer if provided
+    const formattedAttachments = data.attachments?.map(att => ({
+      filename: att.filename,
+      content: att.content.startsWith("data:")
+        ? Buffer.from(att.content.split(",")[1], "base64")
+        : att.content,
+      contentType: att.contentType,
+      encoding: att.encoding || (att.content.startsWith("data:") ? "base64" : undefined)
+    }));
+
     const res = await sendEmail({
       to: data.to,
       subject: data.subject,
@@ -277,6 +338,7 @@ export async function sendMailAction(data: {
       fromName,
       fromEmail,
       replyTo: fromEmail,
+      attachments: formattedAttachments,
       smtpConfig: linkedAcc && linkedAcc.smtpPass ? {
         host: linkedAcc.smtpHost || "smtp.gmail.com",
         port: linkedAcc.smtpPort || 465,
@@ -295,7 +357,8 @@ export async function sendMailAction(data: {
       body: data.body,
       createdAt: new Date().toISOString(),
       isRead: true,
-      folder: "SENT"
+      folder: "SENT",
+      attachments: data.attachments || []
     });
 
     revalidatePath("/");

@@ -9,6 +9,12 @@ interface SendEmailParams {
   fromName?: string;
   fromEmail?: string;
   replyTo?: string;
+  attachments?: Array<{
+    filename: string;
+    path?: string;
+    content?: string | Buffer;
+    contentType?: string;
+  }>;
   smtpConfig?: {
     host?: string;
     port?: number;
@@ -25,6 +31,7 @@ export async function sendEmail({
   fromName,
   fromEmail,
   replyTo,
+  attachments,
   smtpConfig
 }: SendEmailParams) {
   const host = smtpConfig?.host || process.env.SMTP_HOST || "smtp.gmail.com";
@@ -49,6 +56,7 @@ export async function sendEmail({
     console.log(`Reply-To: ${replyToEmail}`);
     console.log(`To: ${recipients.join(", ")}`);
     console.log(`Subject: ${subject}`);
+    console.log(`Attachments: ${attachments ? attachments.map(a => a.filename).join(", ") : "Ninguno"}`);
     console.log(`Body (Snippet): ${text || html.replace(/<[^>]+>/g, "").slice(0, 150)}...`);
     console.log(`------------------------------------------------------\n`);
     return { success: true, simulated: true };
@@ -74,7 +82,8 @@ export async function sendEmail({
       to: recipients,
       subject,
       html,
-      text: text || html.replace(/<[^>]+>/g, "")
+      text: text || html.replace(/<[^>]+>/g, ""),
+      attachments
     });
 
     return { success: true, messageId: info.messageId };

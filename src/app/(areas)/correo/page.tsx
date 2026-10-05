@@ -14,21 +14,18 @@ import {
   Reply, 
   Forward, 
   CheckCircle2, 
-  User, 
   ShieldCheck, 
   Star,
   Key,
-  ExternalLink,
-  ChevronRight,
   AlertCircle,
-  Sparkles,
   Paperclip,
   AtSign,
-  Tag,
-  Clock,
-  ArrowLeft,
   LogOut,
-  Sliders
+  Sliders,
+  FileText,
+  Download,
+  Filter,
+  CheckCheck
 } from "lucide-react";
 import { 
   getMails, 
@@ -40,13 +37,34 @@ import {
   toggleStarMailAction,
   deleteMailAction,
   unlinkGoogleAccount,
-  saveGoogleOauthKeys
+  saveGoogleOauthKeys,
+  getGoogleOauthKeysStatus,
+  AttachmentItem
 } from "@/actions/mail";
 import { getCurrentUserSession } from "@/actions/users";
+
+function formatBytes(bytes: number = 0): string {
+  if (!bytes || bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+function getAttachmentIcon(filename: string = "", contentType: string = "") {
+  const ext = filename.split('.').pop()?.toLowerCase() || "";
+  if (ext === "pdf" || contentType.includes("pdf")) return <FileText className="w-5 h-5 text-red-400" />;
+  if (["xls", "xlsx", "csv"].includes(ext) || contentType.includes("excel") || contentType.includes("spreadsheet"))
+    return <FileText className="w-5 h-5 text-emerald-400" />;
+  if (["jpg", "jpeg", "png", "webp", "gif"].includes(ext) || contentType.includes("image"))
+    return <FileText className="w-5 h-5 text-purple-400" />;
+  return <Paperclip className="w-5 h-5 text-blue-400" />;
+}
 
 export default function GmailPage() {
   const [session, setSession] = useState<any>(null);
   const [activeFolder, setActiveFolder] = useState<"INBOX" | "STARRED" | "SENT" | "LINK">("INBOX");
+  const [quickFilter, setQuickFilter] = useState<"ALL" | "UNREAD" | "STARRED" | "HAS_ATTACHMENTS">("ALL");
   const [inbox, setInbox] = useState<any[]>([]);
   const [sent, setSent] = useState<any[]>([]);
   const [selectedMail, setSelectedMail] = useState<any>(null);
@@ -54,12 +72,13 @@ export default function GmailPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isComposing, setIsComposing] = useState(false);
 
-  // Compose Form
+  // Compose Form & Attachments
   const [composeData, setComposeData] = useState({
     to: "",
     subject: "",
     body: ""
   });
+  const [attachedFiles, setAttachedFiles] = useState<AttachmentItem[]>([]);
   const [sending, setSending] = useState(false);
 
   // Google Account Settings
@@ -119,9 +138,10 @@ export default function GmailPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [mailsRes, accRes] = await Promise.all([
+    const [mailsRes, accRes, oauthStatus] = await Promise.all([
       getMails(),
-      getMailAccountSettings()
+      getMailAccountSettings(),
+      getGoogleOauthKeysStatus()
     ]);
 
     if (mailsRes.success) {
@@ -135,12 +155,52 @@ export default function GmailPage() {
     if (accRes.success && accRes.account) {
       setAccountSettings(prev => ({ ...prev, ...accRes.account }));
     }
+
+    if (oauthStatus && (oauthStatus.clientId || oauthStatus.clientSecret)) {
+      setOauthKeys({ clientId: oauthStatus.clientId, clientSecret: oauthStatus.clientSecret });
+    }
+
     setLoading(false);
   };
 
-  // Iniciar Sesión con Google OAuth (Abrir flujo oficial de Google)
-  const handleGoogleOAuthLogin = () => {
-    window.location.href = "/api/auth/google";
+  // Archivos Adjuntos Upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const filePromises = Array.from(files).map((file) => {
+      return new Promise<AttachmentItem>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          resolve({
+            filename: file.name,
+            content: reader.result as string,
+            contentType: file.type || "application/octet-stream",
+            size: file.size
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(filePromises).then((newFiles) => {
+      setAttachedFiles((prev) => [...prev, ...newFiles]);
+    });
+  };
+
+  // Iniciar Sesión con Google OAuth
+  const handleGoogleOAuthLogin = async () => {
+    const status = await getGoogleOauthKeysStatus();
+    if (status.hasKeys) {
+      window.location.href = "/api/auth/google";
+    } else {
+      showToast("error", "Se requieren configurar las claves de aplicación Google Client ID y Client Secret.");
+      setActiveFolder("LINK");
+      setShowOauthKeysForm(true);
+      if (status.clientId) {
+        setOauthKeys({ clientId: status.clientId, clientSecret: status.clientSecret });
+      }
+    }
   };
 
   // Desvincular Cuenta Google
@@ -167,7 +227,7 @@ export default function GmailPage() {
     }
   };
 
-  // Redactar / Responder
+  // Redactar / Enviar
   const handleSendMail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!composeData.to || !composeData.subject || !composeData.body) {
@@ -180,13 +240,15 @@ export default function GmailPage() {
       to: composeData.to,
       subject: composeData.subject,
       body: composeData.body,
-      fromName: accountSettings.displayName
+      fromName: accountSettings.displayName,
+      attachments: attachedFiles
     });
     setSending(false);
 
     if (res.success) {
-      showToast("success", res.simulated ? "Correo enviado (Modo simulación activo)" : "Correo enviado con éxito por Gmail / Google Workspace");
+      showToast("success", res.simulated ? "Correo enviado con adjuntos (Modo simulación)" : "Correo enviado con éxito por Gmail / Google Workspace");
       setComposeData({ to: "", subject: "", body: "" });
+      setAttachedFiles([]);
       setIsComposing(false);
       setActiveFolder("SENT");
       fetchData();
@@ -252,18 +314,31 @@ export default function GmailPage() {
     }
   };
 
-  // Filtrado de correos por carpeta y búsqueda
+  const handleMarkAllRead = () => {
+    setInbox(prev => prev.map(m => ({ ...m, isRead: true })));
+    showToast("success", "Todos los mensajes marcados como leídos.");
+  };
+
+  // Filtrado de correos por carpeta, filtros rápidos y búsqueda
   let currentList: any[] = [];
   if (activeFolder === "INBOX") currentList = inbox;
   else if (activeFolder === "SENT") currentList = sent;
   else if (activeFolder === "STARRED") currentList = inbox.filter(m => m.isStarred);
 
-  const filteredMails = currentList.filter(m => 
-    (m.subject || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (m.fromName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (m.fromEmail || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (m.body || "").toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredMails = currentList.filter(m => {
+    const matchesSearch = 
+      (m.subject || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.fromName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.fromEmail || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.body || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    if (quickFilter === "UNREAD") return !m.isRead;
+    if (quickFilter === "STARRED") return m.isStarred;
+    if (quickFilter === "HAS_ATTACHMENTS") return m.attachments && m.attachments.length > 0;
+    return true;
+  });
 
   const unreadCount = inbox.filter(m => !m.isRead).length;
 
@@ -311,7 +386,7 @@ export default function GmailPage() {
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Buscar en el correo (remitente, asunto o contenido)..."
+            placeholder="Buscar en el correo (remitente, asunto, contenido o adjuntos)..."
             className="w-full bg-bg-card border border-border-custom rounded-xl pl-10 pr-4 py-2 text-xs text-text-primary focus:border-[#0078D7] outline-none shadow-inner"
           />
         </div>
@@ -441,22 +516,78 @@ export default function GmailPage() {
         {activeFolder !== "LINK" && !isComposing && (
           <div className="flex-1 flex overflow-hidden">
             
-            {/* COLUMNA CENTRAL: LISTA DE MENSAJES */}
+            {/* COLUMNA CENTRAL: LISTA DE MENSAJES CON FILTROS CÓMODOS */}
             <div className="w-96 border-r border-border-custom flex flex-col bg-bg-card shrink-0">
               
-              {/* Encabezado Lista */}
-              <div className="p-3.5 border-b border-border-custom bg-bg-subtle/50 flex justify-between items-center shrink-0">
-                <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
-                  {activeFolder === "INBOX" && "Bandeja de Entrada"}
-                  {activeFolder === "STARRED" && "Correos Destacados"}
-                  {activeFolder === "SENT" && "Correos Enviados"}
-                </span>
-                <span className="text-[11px] font-mono text-text-muted font-bold">
-                  {filteredMails.length} mensaje(s)
-                </span>
+              {/* Encabezado Lista & Filtros de Navegación Cómoda */}
+              <div className="p-3 border-b border-border-custom bg-bg-subtle/50 space-y-2 shrink-0">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-extrabold text-text-primary uppercase tracking-wider flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-[#0078D7]" />
+                    {activeFolder === "INBOX" && "Bandeja de Entrada"}
+                    {activeFolder === "STARRED" && "Correos Destacados"}
+                    {activeFolder === "SENT" && "Correos Enviados"}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleMarkAllRead}
+                      className="text-[10px] font-bold text-text-muted hover:text-[#0078D7] flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Marcar todo como leído"
+                    >
+                      <CheckCheck className="w-3.5 h-3.5" /> Leídos
+                    </button>
+                    <span className="text-[10px] font-mono text-text-muted font-bold bg-bg-card px-2 py-0.5 rounded border border-border-custom">
+                      {filteredMails.length}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Filtros Rápidos (Pills) */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[10px] font-bold">
+                  <button
+                    onClick={() => setQuickFilter("ALL")}
+                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                      quickFilter === "ALL"
+                        ? "bg-[#0078D7] text-white shadow-sm"
+                        : "bg-bg-card border border-border-custom text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  <button
+                    onClick={() => setQuickFilter("UNREAD")}
+                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                      quickFilter === "UNREAD"
+                        ? "bg-[#0078D7] text-white shadow-sm"
+                        : "bg-bg-card border border-border-custom text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    Sin leer ({inbox.filter(m => !m.isRead).length})
+                  </button>
+                  <button
+                    onClick={() => setQuickFilter("STARRED")}
+                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                      quickFilter === "STARRED"
+                        ? "bg-[#0078D7] text-white shadow-sm"
+                        : "bg-bg-card border border-border-custom text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    Destacados
+                  </button>
+                  <button
+                    onClick={() => setQuickFilter("HAS_ATTACHMENTS")}
+                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                      quickFilter === "HAS_ATTACHMENTS"
+                        ? "bg-[#0078D7] text-white shadow-sm"
+                        : "bg-bg-card border border-border-custom text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    <Paperclip className="w-3 h-3" /> Con Adjuntos
+                  </button>
+                </div>
               </div>
 
-              {/* Lista Scrollable */}
+              {/* Lista Scrollable de Correos */}
               <div className="flex-1 overflow-y-auto divide-y divide-border-custom/50">
                 {loading ? (
                   <div className="py-16 text-center text-xs text-text-muted flex flex-col items-center gap-2">
@@ -466,16 +597,18 @@ export default function GmailPage() {
                 ) : filteredMails.length > 0 ? (
                   filteredMails.map((mail) => {
                     const isSelected = selectedMail?.id === mail.id;
+                    const hasAttachments = mail.attachments && mail.attachments.length > 0;
+
                     return (
                       <div
                         key={mail.id}
                         onClick={() => handleSelectMail(mail)}
-                        className={`p-4 cursor-pointer transition-all relative flex flex-col space-y-1.5 ${
+                        className={`p-3.5 cursor-pointer transition-all relative flex flex-col space-y-1.5 ${
                           isSelected
                             ? "bg-[#0078D7]/10 border-l-4 border-[#0078D7] text-text-primary"
                             : mail.isRead
                             ? "bg-bg-card hover:bg-bg-subtle text-text-secondary"
-                            : "bg-bg-subtle/70 text-text-primary font-bold hover:bg-bg-subtle"
+                            : "bg-bg-subtle/80 text-text-primary font-bold hover:bg-bg-subtle"
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -490,9 +623,14 @@ export default function GmailPage() {
                               {activeFolder === "SENT" ? `Para: ${mail.toEmail}` : mail.fromName || mail.fromEmail}
                             </span>
                           </div>
-                          <span className="text-[10px] text-text-muted font-mono shrink-0">
-                            {new Date(mail.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                          </span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {!mail.isRead && (
+                              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" title="No leído" />
+                            )}
+                            <span className="text-[10px] text-text-muted font-mono">
+                              {new Date(mail.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                            </span>
+                          </div>
                         </div>
 
                         <h4 className={`text-xs truncate ${!mail.isRead ? "font-extrabold text-[#0078D7]" : "font-semibold"}`}>
@@ -503,25 +641,40 @@ export default function GmailPage() {
                           {mail.body}
                         </p>
 
-                        {mail.badge && (
-                          <div className="pt-1 flex items-center gap-1">
+                        <div className="pt-1 flex items-center justify-between">
+                          {mail.badge ? (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/30 uppercase font-mono">
                               {mail.badge}
                             </span>
-                          </div>
-                        )}
+                          ) : <span />}
+
+                          {hasAttachments && (
+                            <span className="text-[10px] text-[#0078D7] font-bold flex items-center gap-1 bg-[#0078D7]/10 px-2 py-0.5 rounded border border-[#0078D7]/30">
+                              <Paperclip className="w-3 h-3" />
+                              {mail.attachments.length} adjunto(s)
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })
                 ) : (
-                  <div className="py-16 text-center text-xs text-text-muted italic">
-                    No se encontraron mensajes en esta sección.
+                  <div className="py-16 text-center text-xs text-text-muted italic space-y-1">
+                    <p>No se encontraron mensajes en esta vista.</p>
+                    {quickFilter !== "ALL" && (
+                      <button
+                        onClick={() => setQuickFilter("ALL")}
+                        className="text-[11px] text-[#0078D7] hover:underline font-bold"
+                      >
+                        Limpiar filtros
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* COLUMNA DERECHA: LECTOR DE CORREO COMPLETO */}
+            {/* COLUMNA DERECHA: LECTOR DE CORREO COMPLETO Y ADJUNTOS */}
             <div className="flex-1 flex flex-col bg-bg-sidebar overflow-hidden">
               {selectedMail ? (
                 <div className="flex-1 flex flex-col overflow-hidden">
@@ -597,19 +750,61 @@ export default function GmailPage() {
                         <p key={idx}>{p}</p>
                       ))}
                     </div>
+
+                    {/* ARCHIVOS ADJUNTOS DEL CORREO */}
+                    {selectedMail.attachments && selectedMail.attachments.length > 0 && (
+                      <div className="bg-bg-card border border-border-custom rounded-2xl p-5 space-y-3 shadow-md">
+                        <div className="flex items-center justify-between border-b border-border-custom pb-3">
+                          <h4 className="text-xs font-extrabold text-text-primary flex items-center gap-2 uppercase tracking-wider">
+                            <Paperclip className="w-4 h-4 text-[#0078D7]" />
+                            Archivos Adjuntos ({selectedMail.attachments.length})
+                          </h4>
+                          <span className="text-[10px] text-text-muted font-mono">
+                            Total: {formatBytes(selectedMail.attachments.reduce((acc: number, a: any) => acc + (a.size || 0), 0))}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                          {selectedMail.attachments.map((att: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between bg-bg-subtle p-3 rounded-xl border border-border-custom hover:border-[#0078D7]/40 transition-all">
+                              <div className="flex items-center gap-3 overflow-hidden">
+                                <div className="w-9 h-9 rounded-lg bg-bg-card border border-border-custom flex items-center justify-center shrink-0">
+                                  {getAttachmentIcon(att.filename, att.contentType)}
+                                </div>
+                                <div className="truncate">
+                                  <p className="text-xs font-bold text-text-primary truncate">{att.filename}</p>
+                                  <p className="text-[10px] text-text-muted font-mono">{formatBytes(att.size)}</p>
+                                </div>
+                              </div>
+                              
+                              <a
+                                href={att.content?.startsWith("data:") ? att.content : "#"}
+                                download={att.filename}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-2 bg-bg-card hover:bg-[#0078D7] hover:text-white text-text-primary border border-border-custom rounded-lg transition-all cursor-pointer shrink-0 ml-2"
+                                title="Descargar archivo adjunto"
+                              >
+                                <Download className="w-4 h-4" />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-text-muted text-xs italic space-y-3">
                   <Mail className="w-10 h-10 text-[#0078D7] opacity-30" />
-                  <p>Selecciona un correo de la bandeja para leer su contenido.</p>
+                  <p>Selecciona un correo de la bandeja para leer su contenido y adjuntos.</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* COMPOSER: REDACTAR CORREO NUEVO */}
+        {/* COMPOSER: REDACTAR CORREO NUEVO CON ADJUNTOS */}
         {isComposing && (
           <div className="flex-1 flex flex-col bg-bg-sidebar p-6 overflow-y-auto">
             <div className="max-w-3xl mx-auto w-full bg-bg-card border border-border-custom rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
@@ -658,7 +853,7 @@ export default function GmailPage() {
                   <label className="text-xs font-bold text-text-muted uppercase tracking-wider">Mensaje:</label>
                   <textarea
                     required
-                    rows={10}
+                    rows={8}
                     value={composeData.body}
                     onChange={e => setComposeData({ ...composeData, body: e.target.value })}
                     placeholder="Escribe aquí tu mensaje de correo corporativo..."
@@ -666,10 +861,57 @@ export default function GmailPage() {
                   />
                 </div>
 
+                {/* ADJUNTAR ARCHIVOS / DOCUMENTOS */}
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
+                      <Paperclip className="w-3.5 h-3.5 text-[#0078D7]" />
+                      Adjuntar Documentos / Archivos:
+                    </label>
+                    <label className="text-xs text-[#0078D7] font-bold hover:underline cursor-pointer flex items-center gap-1 bg-[#0078D7]/10 px-3 py-1 rounded-lg border border-[#0078D7]/30 transition-all">
+                      <Plus className="w-3.5 h-3.5" /> Seleccionar archivos
+                      <input
+                        type="file"
+                        multiple
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  {attachedFiles.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-bg-subtle border border-border-custom rounded-xl">
+                      {attachedFiles.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-bg-card p-2.5 rounded-lg border border-border-custom shadow-sm">
+                          <div className="flex items-center gap-2 truncate pr-2">
+                            {getAttachmentIcon(file.filename, file.contentType)}
+                            <div className="truncate">
+                              <p className="text-xs font-bold text-text-primary truncate">{file.filename}</p>
+                              <p className="text-[10px] text-text-muted font-mono">{formatBytes(file.size)}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAttachedFiles(prev => prev.filter((_, i) => i !== idx))}
+                            className="text-text-muted hover:text-red-400 p-1 cursor-pointer shrink-0"
+                            title="Quitar archivo adjunto"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-border-custom rounded-xl p-4 text-center text-xs text-text-muted hover:border-[#0078D7]/50 transition-all bg-bg-subtle/30">
+                      <p>Selecciona documentos (PDF, Excel, Word, imágenes) para incluir en este envío.</p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-border-custom">
                   <button
                     type="button"
-                    onClick={() => setIsComposing(false)}
+                    onClick={() => { setIsComposing(false); setAttachedFiles([]); }}
                     className="px-5 py-2.5 rounded-xl text-xs font-bold text-text-muted hover:bg-bg-subtle transition-all cursor-pointer"
                   >
                     Cancelar

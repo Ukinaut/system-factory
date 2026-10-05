@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import OpenAI from "openai";
+import { getMails, sendMailAction } from "@/actions/mail";
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -262,6 +263,36 @@ const AI_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
         }
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_user_emails",
+      description: "Busca y consulta los correos electrónicos del usuario (bandeja de entrada o enviados), incluyendo remitente, asunto, contenido y archivos adjuntos.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Filtro o palabra clave a buscar en el asunto, cuerpo o remitente" },
+          folder: { type: "string", enum: ["INBOX", "SENT", "ALL"], description: "Carpeta a consultar (default: ALL)" }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_email_via_ai",
+      description: "Redacta y envía un correo electrónico corporativo desde la cuenta Gmail/Google Workspace del usuario a un destinatario especificando asunto y contenido.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Correo del destinatario" },
+          subject: { type: "string", description: "Asunto del mensaje" },
+          body: { type: "string", description: "Cuerpo o texto del correo electrónico" }
+        },
+        required: ["to", "subject", "body"]
+      }
+    }
   }
 ];
 
@@ -473,6 +504,58 @@ async function executeToolWithPermissions(
         return { count: requests.length, requests };
       }
 
+      case "search_user_emails": {
+        const mailsRes = await getMails();
+        if (!mailsRes.success) {
+          return { error: mailsRes.error || "No se pudo obtener los correos electrónicos." };
+        }
+
+        let items: any[] = [];
+        const folder = args.folder || "ALL";
+        if (folder === "INBOX") items = mailsRes.inbox || [];
+        else if (folder === "SENT") items = mailsRes.sent || [];
+        else items = [...(mailsRes.inbox || []), ...(mailsRes.sent || [])];
+
+        if (args.query) {
+          const q = args.query.toLowerCase();
+          items = items.filter((m: any) =>
+            (m.subject || "").toLowerCase().includes(q) ||
+            (m.fromName || "").toLowerCase().includes(q) ||
+            (m.fromEmail || "").toLowerCase().includes(q) ||
+            (m.body || "").toLowerCase().includes(q)
+          );
+        }
+
+        const formatted = items.slice(0, 10).map((m: any) => ({
+          id: m.id,
+          folder: m.folder || "INBOX",
+          from: `${m.fromName} <${m.fromEmail}>`,
+          to: m.toEmail,
+          subject: m.subject,
+          snippet: (m.body || "").slice(0, 150) + "...",
+          createdAt: m.createdAt,
+          isRead: m.isRead,
+          attachments: m.attachments?.map((a: any) => ({ filename: a.filename, size: a.size, contentType: a.contentType })) || []
+        }));
+
+        return { count: formatted.length, emails: formatted };
+      }
+
+      case "send_email_via_ai": {
+        if (!args.to || !args.subject || !args.body) {
+          return { error: "Faltan parámetros requeridos (destinatario, asunto y mensaje)." };
+        }
+
+        const res = await sendMailAction({
+          to: args.to,
+          subject: args.subject,
+          body: args.body,
+          fromName: `${session.nombre} (vía Aitue AI)`
+        });
+
+        return res;
+      }
+
       default:
         return { error: `Herramienta desconocida: ${toolName}` };
     }
@@ -676,7 +759,7 @@ export async function sendAiMessage(data: { conversationId?: string; prompt: str
 
     const userContextPrompt = `
 Eres Aitue AI, el asistente operativo inteligente de la empresa Aitue Cominca S.A. (proveedora de soluciones satelitales y telecomunicaciones).
-Tu objetivo es ayudar al usuario a responder preguntas corporativas, consultar datos del sistema y ejecutar acciones automáticas de forma eficiente y profesional.
+Tu objetivo es ayudar al usuario a responder preguntas corporativas, consultar datos del sistema, buscar y redactar correos electrónicos, gestionar archivos adjuntos y ejecutar acciones automáticas de forma eficiente y profesional.
 
 INFORMACIÓN DEL USUARIO CONECTADO:
 - Nombre: ${session.nombre}
@@ -684,6 +767,11 @@ INFORMACIÓN DEL USUARIO CONECTADO:
 - Rol Principal: ${session.rol}
 - Áreas Permitidas: ${allowedInfo.allowedAreas.join(", ")}
 - Es Administrador Total: ${allowedInfo.isFullAdmin ? "SÍ" : "NO"}
+
+CAPACIDADES DE CORREO Y ADJUNTOS:
+- Tienes acceso completo para buscar en los correos del usuario (bandeja de entrada y enviados), leer contenidos y verificar si incluyen archivos adjuntos (PDFs, planillas Excel, documentos).
+- Puedes redactar y enviar correos electrónicos en nombre del usuario utilizando la función 'send_email_via_ai'.
+- Si el usuario te pide resumen de un correo o consulta sobre adjuntos, utiliza 'search_user_emails' para obtener la información exacta.
 
 REGLAS DE SEGURIDAD Y PERMISOS DE USUARIO (MANDATORIO):
 1. ACCESO TOTAL PARA EL ADMINISTRADOR: El usuario Administrador (Rol: ${session.rol}, Administrador Total: ${allowedInfo.isFullAdmin ? "SÍ" : "NO"}) TIENE PERMISOS ABSOLUTOS Y TOTALES para pedirle y ejecutar cualquier acción, consulta, modificación, informe o gestión en el sistema. Debes responder y ejecutar todas sus solicitudes sin restricciones.

@@ -238,6 +238,30 @@ const AI_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
         }
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_users_list",
+      description: "Solo Administradores: Consulta el directorio completo de usuarios, roles y datos de contacto.",
+      parameters: {
+        type: "object",
+        properties: {}
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_purchases_list",
+      description: "Consulta el historial de solicitudes de compra, insumos y facturas asociadas.",
+      parameters: {
+        type: "object",
+        properties: {
+          estado: { type: "string", description: "Estado opcional: PENDIENTE, APROBADA, RECHAZADA, PROCESADA" }
+        }
+      }
+    }
   }
 ];
 
@@ -410,6 +434,43 @@ async function executeToolWithPermissions(
           take: args.limit || 10
         });
         return { count: logs.length, logs };
+      }
+
+      case "get_users_list": {
+        if (!isFullAdmin && !checkPerm("ADMIN")) {
+          return { error: "Acceso Denegado: El directorio de usuarios está reservado para Administradores." };
+        }
+        const users = await prisma.user.findMany({
+          select: {
+            id: true,
+            nombre: true,
+            correo: true,
+            rol: true,
+            telefono: true,
+            cargo: true,
+            createdAt: true,
+            permissions: { select: { areaPermitida: true } }
+          },
+          orderBy: { nombre: "asc" }
+        });
+        return { count: users.length, users };
+      }
+
+      case "get_purchases_list": {
+        if (!checkPerm("STOCK") && !checkPerm("ADMIN") && !checkPerm("VENTAS") && !isFullAdmin) {
+          return { error: "Acceso Denegado: Tu usuario no posee permisos para consultar Compras." };
+        }
+        const where: any = {};
+        if (args.estado) where.estado = args.estado;
+        const requests = await prisma.purchaseRequest.findMany({
+          where,
+          include: {
+            user: { select: { nombre: true, rol: true } }
+          },
+          orderBy: { createdAt: "desc" },
+          take: 15
+        });
+        return { count: requests.length, requests };
       }
 
       default:
@@ -597,6 +658,22 @@ export async function sendAiMessage(data: { conversationId?: string; prompt: str
 
     // Determinar permisos y contexto del usuario
     const allowedInfo = getUserAllowedAreas(session);
+
+    // Obtener base de conocimiento RAG (pautas e historiales importados de ChatGPT)
+    let ragContext = "";
+    try {
+      const knowledgeItems = await prisma.botKnowledge.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 15
+      });
+      if (knowledgeItems.length > 0) {
+        ragContext = `\n\nCONOCIMIENTO ADICIONAL Y PAUTAS RAG (ARCHIVOS Y CONVERSACIONES DE CHATGPT APRENDIDAS):\n` +
+          knowledgeItems.map(k => `- [Categoría: ${k.categoria}] **${k.titulo}**: ${k.contenido}`).join("\n");
+      }
+    } catch (err) {
+      console.warn("No se pudo cargar la base de conocimiento RAG:", err);
+    }
+
     const userContextPrompt = `
 Eres Aitue AI, el asistente operativo inteligente de la empresa Aitue Cominca S.A. (proveedora de soluciones satelitales y telecomunicaciones).
 Tu objetivo es ayudar al usuario a responder preguntas corporativas, consultar datos del sistema y ejecutar acciones automáticas de forma eficiente y profesional.
@@ -608,10 +685,12 @@ INFORMACIÓN DEL USUARIO CONECTADO:
 - Áreas Permitidas: ${allowedInfo.allowedAreas.join(", ")}
 - Es Administrador Total: ${allowedInfo.isFullAdmin ? "SÍ" : "NO"}
 
-REGLAS DE SEGURIDAD Y CONTROL DE ACCESO (MANDATORIO):
-1. Solamente puedes consultar o ejecutar acciones en las áreas permitidas para este usuario. Si el usuario te pide una información o acción fuera de sus áreas permitidas (${allowedInfo.allowedAreas.join(", ")}), debes denegar la solicitud cortésmente informándole que su usuario no posee los permisos necesarios para ese panel.
-2. Formatea tus respuestas en formato Markdown claro, profesional y estructurado con viñetas, negritas y tablas cuando corresponda.
-3. Si utilizas herramientas (Function Calling), explica brevemente el resultado de la consulta.
+REGLAS DE SEGURIDAD Y PERMISOS DE USUARIO (MANDATORIO):
+1. ACCESO TOTAL PARA EL ADMINISTRADOR: El usuario Administrador (Rol: ${session.rol}, Administrador Total: ${allowedInfo.isFullAdmin ? "SÍ" : "NO"}) TIENE PERMISOS ABSOLUTOS Y TOTALES para pedirle y ejecutar cualquier acción, consulta, modificación, informe o gestión en el sistema. Debes responder y ejecutar todas sus solicitudes sin restricciones.
+2. RESTRICCIÓN DE SEGURIDAD PARA OTROS ROLES: Si el usuario NO es Administrador, solamente puedes consultar o ejecutar acciones en las áreas asignadas explicitamente (${allowedInfo.allowedAreas.join(", ")}). Si un usuario sin rol Administrador solicita información o acciones fuera de sus áreas permitidas, deniega la solicitud cortésmente.
+3. FORMATO DE RESPUESTA: Formatea tus respuestas en formato Markdown claro, profesional y estructurado con viñetas, negritas y tablas cuando corresponda.
+4. USO DE HERRAMIENTAS: Si utilizas herramientas (Function Calling), explica de manera clara y directa el resultado o la acción ejecutada.
+${ragContext}
 `;
 
     // Armar mensajes para la API de OpenAI

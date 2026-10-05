@@ -76,11 +76,10 @@ export default function AiAssistantManager() {
   };
 
   // Obtener lista única de usuarios que tienen chats
-  const uniqueUsers = Array.from(
-    new Map(
-      conversations.map(c => [c.user?.id, c.user]).filter(([id, u]) => id && u)
-    ).values()
-  );
+  const userEntries = conversations
+    .filter(c => c.user?.id && c.user)
+    .map(c => [c.user.id, c.user] as [string, any]);
+  const uniqueUsers = Array.from(new Map<string, any>(userEntries).values());
 
   return (
     <div className="space-y-6">

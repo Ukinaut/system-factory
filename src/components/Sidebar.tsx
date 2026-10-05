@@ -22,7 +22,8 @@ import {
   Globe,
   Store,
   Menu,
-  X
+  X,
+  Mail
 } from "lucide-react";
 import { logoutAction } from "@/actions/auth";
 import { clearSelectedCountryAction } from "@/actions/countries";

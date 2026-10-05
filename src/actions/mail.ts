@@ -96,6 +96,37 @@ export async function testGoogleWorkspaceConnection(data: {
   return res;
 }
 
+export async function unlinkGoogleAccount() {
+  const session = await getSession();
+  if (!session) return { success: false, error: "No autenticado" };
+
+  const accounts = readStoredMailAccounts();
+  if (accounts[session.id]) {
+    delete accounts[session.id];
+    saveStoredMailAccounts(accounts);
+  }
+
+  revalidatePath("/correo");
+  revalidatePath("/perfil");
+  return { success: true, message: "Cuenta de Google desvinculada correctamente." };
+}
+
+export async function saveGoogleOauthKeys(data: { clientId: string; clientSecret: string }) {
+  const session = await getSession();
+  if (!session) return { success: false, error: "No autenticado" };
+
+  const accounts = readStoredMailAccounts();
+  accounts.__google_oauth_keys = {
+    clientId: data.clientId.trim(),
+    clientSecret: data.clientSecret.trim(),
+    updatedAt: new Date().toISOString()
+  };
+
+  saveStoredMailAccounts(accounts);
+  revalidatePath("/correo");
+  return { success: true, message: "Claves de Google OAuth 2.0 guardadas correctamente." };
+}
+
 export async function saveMailAccountSettings(data: {
   provider: string;
   email: string;
@@ -135,6 +166,7 @@ export async function saveMailAccountSettings(data: {
   saveStoredMailAccounts(accounts);
 
   revalidatePath("/perfil");
+  revalidatePath("/correo");
   return { success: true, message: "Cuenta empresarial de Google Workspace vinculada correctamente." };
 }
 
@@ -267,9 +299,33 @@ export async function sendMailAction(data: {
     });
 
     revalidatePath("/");
+    revalidatePath("/correo");
     return { success: true, message: "Correo electrónico enviado correctamente.", simulated: res.simulated };
   } catch (error: any) {
     console.error("Error in sendMailAction:", error);
     return { success: false, error: error?.message || "Error al procesar el envío de correo." };
   }
 }
+
+// In-memory mail store for state changes during session
+const mailStateStore: Record<string, { isRead?: boolean; isStarred?: boolean; isDeleted?: boolean }> = {};
+
+export async function markMailAsReadAction(mailId: string, isRead: boolean = true) {
+  mailStateStore[mailId] = { ...mailStateStore[mailId], isRead };
+  revalidatePath("/correo");
+  return { success: true };
+}
+
+export async function toggleStarMailAction(mailId: string) {
+  const current = mailStateStore[mailId]?.isStarred || false;
+  mailStateStore[mailId] = { ...mailStateStore[mailId], isStarred: !current };
+  revalidatePath("/correo");
+  return { success: true, isStarred: !current };
+}
+
+export async function deleteMailAction(mailId: string) {
+  mailStateStore[mailId] = { ...mailStateStore[mailId], isDeleted: true };
+  revalidatePath("/correo");
+  return { success: true };
+}
+

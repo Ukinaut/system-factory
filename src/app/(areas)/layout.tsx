@@ -2,7 +2,7 @@ import Sidebar from "@/components/Sidebar";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { User, Calendar, MessageSquare } from "lucide-react";
+import { User, Calendar, MessageSquare, Mail } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import CurrencyRatesDropdown from "@/components/CurrencyRatesDropdown";
 import AiChatBubble from "@/components/AiChatBubble";
@@ -67,6 +67,13 @@ export default async function AreasLayout({ children }: { children: React.ReactN
           </div>
           <div className="flex items-center gap-3 sm:gap-6">
             <nav className="flex items-center gap-3 sm:gap-6 border-r border-border-custom pr-3 sm:pr-6">
+              <Link href="/correo" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-text-muted hover:text-red-400 transition-colors group">
+                <div className="relative flex items-center justify-center">
+                  <Mail className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-red-500 group-hover:scale-110 transition-transform" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                </div>
+                <span className="font-bold text-text-primary group-hover:text-red-400">Gmail</span>
+              </Link>
               <Link href="/perfil" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-text-muted hover:text-text-primary transition-colors">
                 <User className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 <span className="hidden sm:inline">Perfil</span>

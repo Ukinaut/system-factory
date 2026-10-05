@@ -155,6 +155,125 @@ export async function deleteKnowledgeItem(id: string) {
   }
 }
 
+export async function clearAllKnowledgeItems() {
+  try {
+    await prisma.botKnowledge.deleteMany();
+    revalidatePath("/bot");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error clearing knowledge items:", error);
+    return { success: false, error: "Error al vaciar la base de conocimiento." };
+  }
+}
+
+export async function importChatGPTFile(data: {
+  fileBase64: string;
+  fileName: string;
+  categoria?: string;
+}) {
+  try {
+    const base64Content = data.fileBase64.replace(/^data:.*?;base64,/, "");
+    const decodedText = Buffer.from(base64Content, "base64").toString("utf-8");
+    const category = data.categoria || "CHATGPT_EXPORT";
+    let createdCount = 0;
+
+    // 1. Intentar parsear como JSON (Formato nativo de exportación de ChatGPT OpenAI)
+    if (data.fileName.toLowerCase().endsWith(".json") || decodedText.trim().startsWith("[") || decodedText.trim().startsWith("{")) {
+      try {
+        const jsonData = JSON.parse(decodedText);
+        const conversations = Array.isArray(jsonData) ? jsonData : [jsonData];
+
+        for (const conv of conversations) {
+          const title = conv.title || conv.name || `Conversación ChatGPT ${Date.now()}`;
+          let messagesText = "";
+
+          // Formato estándar de exportación de OpenAI ChatGPT: conv.mapping
+          if (conv.mapping && typeof conv.mapping === "object") {
+            const nodes = Object.values(conv.mapping) as any[];
+            for (const node of nodes) {
+              const msg = node.message;
+              if (msg && msg.content && msg.content.parts) {
+                const role = msg.author?.role === "user" ? "Usuario" : "ChatGPT";
+                const text = msg.content.parts.filter((p: any) => typeof p === "string").join("\n");
+                if (text.trim()) {
+                  messagesText += `${role}: ${text.trim()}\n`;
+                }
+              }
+            }
+          } else if (Array.isArray(conv.messages)) {
+            // Formato estructurado simple de lista de mensajes
+            for (const msg of conv.messages) {
+              const role = msg.role || msg.sender || "Participante";
+              const text = msg.content || msg.text || "";
+              if (text) {
+                messagesText += `${role}: ${text.trim()}\n`;
+              }
+            }
+          } else if (typeof conv === "object") {
+            messagesText = JSON.stringify(conv, null, 2);
+          }
+
+          if (messagesText.trim()) {
+            // Recortar si supera 3000 caracteres para evitar saturación de prompt por ítem
+            const truncatedText = messagesText.length > 3000 ? messagesText.slice(0, 3000) + "...\n(Contenido resumido)" : messagesText;
+            await prisma.botKnowledge.create({
+              data: {
+                titulo: title.slice(0, 100),
+                categoria: category,
+                contenido: truncatedText
+              }
+            });
+            createdCount++;
+          }
+        }
+      } catch (jsonErr) {
+        // Fallback a texto si falla el parseo de JSON
+        console.warn("Fallo el parseo JSON, procesando como texto plano:", jsonErr);
+        await prisma.botKnowledge.create({
+          data: {
+            titulo: `Documento ${data.fileName}`,
+            categoria: category,
+            contenido: decodedText.slice(0, 3500)
+          }
+        });
+        createdCount = 1;
+      }
+    } else {
+      // 2. Procesar como texto plano / Markdown / CSV
+      const blocks = decodedText.split(/\n\s*\n/).filter(b => b.trim().length > 20);
+
+      if (blocks.length > 1 && blocks.length <= 15) {
+        for (let i = 0; i < blocks.length; i++) {
+          const block = blocks[i].trim();
+          await prisma.botKnowledge.create({
+            data: {
+              titulo: `${data.fileName} (Sección ${i + 1})`,
+              categoria: category,
+              contenido: block.slice(0, 3000)
+            }
+          });
+          createdCount++;
+        }
+      } else {
+        await prisma.botKnowledge.create({
+          data: {
+            titulo: data.fileName,
+            categoria: category,
+            contenido: decodedText.slice(0, 3500)
+          }
+        });
+        createdCount = 1;
+      }
+    }
+
+    revalidatePath("/bot");
+    return { success: true, count: createdCount };
+  } catch (error: any) {
+    console.error("Error importing ChatGPT file:", error);
+    return { success: false, error: error.message || "Error al procesar e integrar el archivo." };
+  }
+}
+
 export async function getWhatsAppMessages() {
   try {
     const messages = await prisma.whatsAppMessage.findMany({
